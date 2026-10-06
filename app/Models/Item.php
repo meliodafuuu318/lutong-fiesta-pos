@@ -23,6 +23,10 @@ class Item extends Model
         'updated_at'
     ];
 
+    public function category() {
+        return $this->belongsTo(Category::class, 'category_id');
+    }
+    
     public function dailyItems() {
         return $this->hasMany(DailyItem::class, 'item_id');
     }
