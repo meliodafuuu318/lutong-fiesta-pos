@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Http\Requests\Item\{
-    IndexItemRequest
+    IndexItemRequest,
+    StoreItemRequest,
+    UpdateItemRequest
 };
 use App\Models\Item;
+use Illuminate\Support\Facades\DB;
 
 class ItemController extends Controller
 {
@@ -53,5 +56,52 @@ class ItemController extends Controller
             'items' => $items->items(),
             'pagination' => $paginationData
         ], 200);
+    }
+
+    public function store(StoreItemRequest $request)
+    {
+        DB::beginTransaction();
+
+        try {
+            $item = Item::create([
+                'name' => $request->input('name'),
+                'default_price' => $request->input('default_price'),
+                'category_id' => $request->input('category_id'),
+                'is_active' => true
+            ]);
+            DB::commit();
+            return $this->success('Item created successfully', $item, 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->error('Failed to create item: ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function update(UpdateItemRequest $request, Item $item)
+    {
+        DB::beginTransaction();
+
+        try {
+            $item->update($request->only(['name', 'default_price', 'category_id', 'is_active']));
+            DB::commit();
+            return $this->success('Item updated successfully', $item, 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->error('Failed to update item: ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function destroy(Item $item)
+    {
+        DB::beginTransaction();
+
+        try {
+            $item->delete();
+            DB::commit();
+            return $this->success('Item deleted successfully', null, 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->error('Failed to delete item: ' . $e->getMessage(), 500);
+        }
     }
 }
