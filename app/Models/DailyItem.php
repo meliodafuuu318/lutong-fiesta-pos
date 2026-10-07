@@ -15,7 +15,7 @@ class DailyItem extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
-        'date' => 'date|Y-m-d',
+        'date' => 'date',
     ];
 
     protected $hidden = [

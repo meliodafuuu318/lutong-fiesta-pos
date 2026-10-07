@@ -77,6 +77,11 @@ class ItemController extends Controller
         }
     }
 
+    public function show(Item $item)
+    {
+        return $this->success('Item retrieved successfully', $item, 200);
+    }
+
     public function update(UpdateItemRequest $request, Item $item)
     {
         DB::beginTransaction();
