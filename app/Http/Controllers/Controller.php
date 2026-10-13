@@ -4,10 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Traits\{
     ResponseApi,
-    Pagination
+    Pagination,
+    Generator
 };
 
 abstract class Controller
 {
-    use ResponseApi, Pagination;
+    use ResponseApi, Pagination, Generator;
 }

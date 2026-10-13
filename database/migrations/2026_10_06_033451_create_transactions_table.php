@@ -18,7 +18,7 @@ return new class extends Migration
             $table->enum('type', ['WALK IN', 'DELIVERY'])->default('WALK IN');
             $table->enum('status', ['PENDING', 'COMPLETED', 'CANCELLED', 'REFUNDED'])->default('PENDING');
             $table->enum('payment_status', ['PENDING', 'PAID', 'CANCELLED', 'REFUNDED'])->default('PENDING');
-            $table->timestamp('transaction_date')->useCurrent();
+            $table->timestamp('transaction_date');
             $table->timestamps();
         });
     }
