@@ -17,7 +17,7 @@ class Transaction extends Model
 
     protected $casts = [
         'total' => 'decimal:2',
-        'transaction_date' => 'datetime|Y-m-d H:i:s',
+        'transaction_date' => 'datetime',
     ];
 
     public function transactionItems() {

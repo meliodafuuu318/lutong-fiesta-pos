@@ -14,6 +14,7 @@ use App\Http\Requests\Transaction\{
     UpdateTransactionRequest,
     IndexTransactionRequest
 };
+use Illuminate\Support\Facades\DB;
 
 class TransactionController extends Controller
 {
@@ -34,6 +35,8 @@ class TransactionController extends Controller
             $transactions->whereDate('created_at', '<=', $request->date_to);
         }
 
+        $transactions = $transactions->get();
+
         return $this->success('Transactions retrieved successfully', $transactions, 200);
     }
 
@@ -47,14 +50,15 @@ class TransactionController extends Controller
                 'type' => $request->type,
                 'status' => 'PENDING',
                 'payment_status' => 'PENDING',
+                'transaction_date' => now(),
             ]);
 
             $totalAmount = 0;
 
             foreach ($request->input('transaction_items') as $item) {
-                $dailyItem = DailyItem::todayMenu()->available()->where('item_id', $item['item_id'])->first();
+                $dailyItem = DailyItem::todayMenu()->available()->where('id', $item['daily_item_id'])->first();
                 if (!$dailyItem) {
-                    throw new \Exception('Daily item not available for item_id: ' . $item['item_id']);
+                    throw new \Exception('Daily item not available for item_id: ' . $item['daily_item_id']);
                 }
 
                 $amount = $dailyItem->price * $item['quantity'];
@@ -65,7 +69,7 @@ class TransactionController extends Controller
                     'daily_item_id' => $dailyItem->id,
                     'unit_price' => $dailyItem->price,
                     'quantity' => $item['quantity'],
-                    'sub_total' => $amount
+                    'subtotal' => $amount
                 ]);
             }
 
@@ -115,7 +119,7 @@ class TransactionController extends Controller
         try {
             if ($request->filled('payment_method') && $request->filled('payment_amount')) {
                 $totalBalance = $transaction->total;
-                $outstandingBalance = $totalBalance - $request->payment_amount;
+                $outstandingBalance = $transaction->total - $transaction->transactionPayments()->sum('payment_amount') - $request->payment_amount;
 
                 TransactionPayment::create([
                     'transaction_id' => $transaction->id,
@@ -155,6 +159,10 @@ class TransactionController extends Controller
     public function refundTransaction(Transaction $transaction) {
         if ($transaction->status === 'REFUNDED' || $transaction->status === 'CANCELLED') {
             return $this->error('Transaction is already refunded or cancelled', 400);
+        }
+
+        if (!$transaction->transactionPayments()->exists()) {
+            return $this->error('Cannot refund a transaction with no payments', 400);
         }
 
         $transaction->update(['status' => 'REFUNDED', 'payment_status' => 'REFUNDED']);
