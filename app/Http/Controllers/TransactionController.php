@@ -14,6 +14,7 @@ use App\Http\Requests\Transaction\{
     UpdateTransactionRequest,
     IndexTransactionRequest
 };
+use App\Http\Resources\TransactionResource;
 use Illuminate\Support\Facades\DB;
 
 class TransactionController extends Controller
@@ -37,7 +38,7 @@ class TransactionController extends Controller
 
         $transactions = $transactions->get();
 
-        return $this->success('Transactions retrieved successfully', $transactions, 200);
+        return $this->success('Transactions retrieved successfully', TransactionResource::collection($transactions), 200);
     }
 
     public function store(StoreTransactionRequest $request) {
@@ -97,7 +98,7 @@ class TransactionController extends Controller
 
             DB::commit();
 
-            return $this->success('Transaction created successfully', $transaction->load('transactionItems', 'transactionPayments'), 201);
+            return $this->success('Transaction created successfully', new TransactionResource($transaction), 201);
         } catch (\Exception $e) {
             DB::rollBack();
             return $this->error('Failed to create transaction: ' . $e->getMessage(), 500);
@@ -106,7 +107,7 @@ class TransactionController extends Controller
 
     public function show(Transaction $transaction) {
         $transaction->load('transactionItems', 'transactionPayments');
-        return $this->success('Transaction retrieved successfully', $transaction, 200);
+        return $this->success('Transaction retrieved successfully', new TransactionResource($transaction), 200);
     }
 
     public function update(UpdateTransactionRequest $request, Transaction $transaction) {
@@ -139,7 +140,7 @@ class TransactionController extends Controller
 
             DB::commit();
 
-            return $this->success('Transaction updated successfully', $transaction->load('transactionItems', 'transactionPayments'), 200);
+            return $this->success('Transaction updated successfully', new TransactionResource($transaction), 200);
         } catch (\Exception $e) {
             DB::rollBack();
             return $this->error('Failed to update transaction: ' . $e->getMessage(), 500);
@@ -153,7 +154,7 @@ class TransactionController extends Controller
 
         $transaction->update(['status' => 'CANCELLED', 'payment_status' => 'CANCELLED']);
 
-        return $this->success('Transaction cancelled successfully', $transaction, 200);
+        return $this->success('Transaction cancelled successfully', new TransactionResource($transaction), 200);
     }
 
     public function refundTransaction(Transaction $transaction) {
@@ -167,6 +168,6 @@ class TransactionController extends Controller
 
         $transaction->update(['status' => 'REFUNDED', 'payment_status' => 'REFUNDED']);
 
-        return $this->success('Transaction refunded successfully', $transaction, 200);
+        return $this->success('Transaction refunded successfully', new TransactionResource($transaction), 200);
     }
 }

@@ -9,6 +9,7 @@ use App\Http\Requests\Item\{
     UpdateItemRequest
 };
 use App\Models\Item;
+use App\Http\Resources\ItemResource;
 use Illuminate\Support\Facades\DB;
 
 class ItemController extends Controller
@@ -53,7 +54,7 @@ class ItemController extends Controller
         $paginationData = $this->pagePaginationData($items);
 
         return $this->success('Items retrieved successfully', [
-            'items' => $items->items(),
+            'items' => ItemResource::collection($items),
             'pagination' => $paginationData
         ], 200);
     }
@@ -70,7 +71,7 @@ class ItemController extends Controller
                 'is_active' => true
             ]);
             DB::commit();
-            return $this->success('Item created successfully', $item, 201);
+            return $this->success('Item created successfully', new ItemResource($item), 201);
         } catch (\Exception $e) {
             DB::rollBack();
             return $this->error('Failed to create item: ' . $e->getMessage(), 500);
@@ -79,7 +80,7 @@ class ItemController extends Controller
 
     public function show(Item $item)
     {
-        return $this->success('Item retrieved successfully', $item, 200);
+        return $this->success('Item retrieved successfully', new ItemResource($item), 200);
     }
 
     public function update(UpdateItemRequest $request, Item $item)
@@ -89,7 +90,7 @@ class ItemController extends Controller
         try {
             $item->update($request->only(['name', 'default_price', 'category_id', 'is_active']));
             DB::commit();
-            return $this->success('Item updated successfully', $item, 200);
+            return $this->success('Item updated successfully', new ItemResource($item), 200);
         } catch (\Exception $e) {
             DB::rollBack();
             return $this->error('Failed to update item: ' . $e->getMessage(), 500);

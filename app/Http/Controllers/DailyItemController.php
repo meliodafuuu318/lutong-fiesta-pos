@@ -11,12 +11,13 @@ use App\Http\Requests\DailyItem\{
     AddDailyItemRequest,
     UpdateDailyItemRequest
 };
+use App\Http\Resources\DailyItemResource;
 
 class DailyItemController extends Controller
 {
     public function index() {
         $dailyMenu = DailyItem::todayMenu()->get();
-        return $this->success('Today\'s menu retrieved successfully', $dailyMenu->load('item'), 200);
+        return $this->success('Today\'s menu retrieved successfully', DailyItemResource::collection($dailyMenu), 200);
     }
 
     public function addDailyItem(AddDailyItemRequest $request) {
@@ -31,7 +32,7 @@ class DailyItemController extends Controller
             'status' => 'AVAILABLE'
         ]);
 
-        return $this->success('Daily item added successfully', $dailyItem->load('item'), 201);
+        return $this->success('Daily item added successfully', new DailyItemResource($dailyItem), 201);
     }
 
     public function removeDailyItem(DailyItem $dailyItem) {
@@ -55,6 +56,6 @@ class DailyItemController extends Controller
 
         $dailyItem->update($request->validated());
 
-        return $this->success('Daily item updated successfully', $dailyItem->load('item'), 200);
+        return $this->success('Daily item updated successfully', new DailyItemResource($dailyItem), 200);
     }
 }
