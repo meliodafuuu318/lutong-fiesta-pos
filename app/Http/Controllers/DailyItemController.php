@@ -15,10 +15,8 @@ use App\Http\Requests\DailyItem\{
 class DailyItemController extends Controller
 {
     public function index() {
-        $dailyMenu = DailyItem::with('item')
-            ->whereDate('created_at', today())
-            ->get();
-        return $this->success('Daily menu retrieved successfully', $dailyMenu, 200);
+        $dailyMenu = DailyItem::todayMenu()->get();
+        return $this->success('Today\'s menu retrieved successfully', $dailyMenu->load('item'), 200);
     }
 
     public function addDailyItem(AddDailyItemRequest $request) {

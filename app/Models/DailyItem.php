@@ -30,4 +30,11 @@ class DailyItem extends Model
     public function transactionItems() {
         return $this->hasMany(TransactionItem::class, 'daily_item_id');
     }
+
+    public function scopeAvailable($query) {
+        return $query->where('status', 'AVAILABLE');
+    }
+    public function scopeTodayMenu($query) {
+        return $query->whereDate('date', today());
+    }
 }
