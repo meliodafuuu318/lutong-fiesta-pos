@@ -52,9 +52,9 @@ class TransactionController extends Controller
             $totalAmount = 0;
 
             foreach ($request->input('transaction_items') as $item) {
-                $dailyItem = DailyItem::find($item['daily_item_id']);
+                $dailyItem = DailyItem::todayMenu()->available()->where('item_id', $item['item_id'])->first();
                 if (!$dailyItem) {
-                    throw new \Exception('Item not in today\'s menu');
+                    throw new \Exception('Daily item not available for item_id: ' . $item['item_id']);
                 }
 
                 $amount = $dailyItem->price * $item['quantity'];

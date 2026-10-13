@@ -20,7 +20,7 @@ class DailyItemController extends Controller
     }
 
     public function addDailyItem(AddDailyItemRequest $request) {
-        if (DailyItem::where('item_id', $request->input('item_id'))->whereDate('created_at', today())->exists()) {
+        if (DailyItem::todayMenu()->where('item_id', $request->input('item_id'))->exists()) {
             return $this->error('Item already exists in the daily menu', 400);
         }
 
@@ -49,7 +49,12 @@ class DailyItemController extends Controller
     }
 
     public function updateDailyItem(UpdateDailyItemRequest $request, DailyItem $dailyItem) {
+        if ($dailyItem->date != today()) {
+            return $this->error('Cannot update daily item that is not from today\'s menu', 400);
+        }
+
         $dailyItem->update($request->validated());
+
         return $this->success('Daily item updated successfully', $dailyItem->load('item'), 200);
     }
 }
