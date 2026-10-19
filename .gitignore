@@ -1,56 +1,30 @@
-/backend/vendor/
-/backend/node_modules/
-/backend/npm-debug.log
-/backend/yarn-error.log
+/vendor/
+node_modules/
+npm-debug.log
+yarn-error.log
 
 # Laravel 4 specific
-/backend/bootstrap/compiled.php
-/backend/app/storage/
+bootstrap/compiled.php
+app/storage/
 
 # Laravel 5 & Lumen specific
-/backend/public/storage
-/backend/public/hot
+public/storage
+public/hot
 
 # Laravel 5 & Lumen specific with changed public path
-/backend/public_html/storage
-/backend/public_html/hot
+public_html/storage
+public_html/hot
 
-/backend/storage/*.key
-/backend/.env
-/backend/Homestead.yaml
-/backend/Homestead.json
-/backend//.vagrant
-/backend/.phpunit.result.cache
+storage/*.key
+.env
+Homestead.yaml
+Homestead.json
+/.vagrant
+.phpunit.result.cache
 
-/backend//public/build
-/backend//storage/pail
-/backend/.env.backup
-/backend/.env.production
-/backend/.phpactor.json
-/backend/auth.json
-
-# Frontend
-# Logs
-logs
-/frontend/*.log
-/frontend/npm-debug.log*
-/frontend/yarn-debug.log*
-/frontend/yarn-error.log*
-/frontend/pnpm-debug.log*
-/frontend/lerna-debug.log*
-
-/frontend/node_modules
-/frontend/dist
-/frontend/dist-ssr
-/frontend/*.local
-
-# Editor directories and files
-/frontend/.vscode/*
-/frontend/!.vscode/extensions.json
-/frontend/.idea
-/frontend/.DS_Store
-/frontend/*.suo
-/frontend/*.ntvs*
-/frontend/*.njsproj
-/frontend/*.sln
-/frontend/*.sw?
+/public/build
+/storage/pail
+.env.backup
+.env.production
+.phpactor.json
+auth.json
