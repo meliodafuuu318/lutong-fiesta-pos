@@ -3,7 +3,54 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
+/* Palette sampled from the Lutong Piyesta logo */
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --color-teal-50: #effcfb;
+    --color-teal-100: #d0fcf9;
+    --color-teal-300: #6fd6d1;
+    --color-teal-500: #2ab6af;
+    --color-teal-600: #1d8f8a;
+    --color-teal-700: #136f6b;
+    --color-teal-900: #0b3f3d;
+
+    --color-amber-400: #eab25a;
+    --color-amber-500: #e19c37;
+    --color-amber-600: #c47f1e;
+
+    --color-cream-50: #fdf9ee;
+    --color-cream-100: #faf3df;
+    --color-cream-200: #efe4c4;
+
+    --color-ink: #242321;
+    --color-ink-soft: #5b5750;
+
+    --color-danger: #b3361f;
+
+    --font-display: 'Baloo 2', ui-rounded, system-ui, sans-serif;
+    --font-sans: 'Nunito Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+    html {
+        background-color: var(--color-cream-100);
+        color: var(--color-ink);
+        font-family: var(--font-sans);
+    }
+
+    :focus-visible {
+        outline: 3px solid var(--color-teal-500);
+        outline-offset: 2px;
+    }
+}
+
+/* Sunburst behind the badge, echoing the sun in the logo */
+.sunburst {
+    background-color: var(--color-teal-600);
+    background-image:
+        radial-gradient(circle at 50% 50%, rgb(225 156 55 / 0.35) 0, rgb(225 156 55 / 0) 38%),
+        repeating-conic-gradient(
+            from 0deg at 50% 50%,
+            rgb(255 255 255 / 0.09) 0deg 7.5deg,
+            rgb(255 255 255 / 0) 7.5deg 15deg
+        );
 }
