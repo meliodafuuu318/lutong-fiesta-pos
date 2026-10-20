@@ -57,7 +57,7 @@ class ItemController extends Controller
     {
         // Deleting an item cascades to its menu entries and, from there, to the
         // order lines that reference them. Don't wipe sales history.
-        if ($item->dailyItems()->whereHas('transactionItems')->exists()) {
+        if ($item->hasTransactionHistory()) {
             return $this->backToItems($item)->withErrors([
                 'item' => "{$item->name} has order history, so it can't be deleted. Mark it inactive instead.",
             ]);

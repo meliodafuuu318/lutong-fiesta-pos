@@ -99,6 +99,10 @@ class ItemController extends Controller
 
     public function destroy(Item $item)
     {
+        if ($item->hasTransactionHistory()) {
+            return $this->error('Cannot delete item that has daily items with associated transactions', 400);
+        }
+
         DB::beginTransaction();
 
         try {

@@ -30,4 +30,12 @@ class Item extends Model
     public function dailyItems() {
         return $this->hasMany(DailyItem::class, 'item_id');
     }
+
+    /**
+     * Whether any of this item's daily items has transactions. Deleting the item
+     * would cascade through its daily items to those transaction lines.
+     */
+    public function hasTransactionHistory(): bool {
+        return $this->dailyItems()->whereHas('transactionItems')->exists();
+    }
 }
