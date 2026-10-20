@@ -82,13 +82,31 @@ function wireDialog(dialog) {
     });
 }
 
-// Notifications fade out on their own
-document.querySelectorAll('[data-flash]').forEach((el) => {
+const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+// Toast for things that happen without a page load (same look as the server-side notifications)
+function showToast(message, kind = 'status') {
+    const toast = document.createElement('p');
+    toast.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+    toast.className = kind === 'error'
+        ? 'pointer-events-none fixed left-1/2 top-20 z-40 w-[min(32rem,calc(100%-2rem))] -translate-x-1/2 rounded-lg border-2 border-danger bg-cream-50 px-4 py-3 font-semibold text-danger shadow-lg transition-opacity duration-500'
+        : 'pointer-events-none fixed left-1/2 top-20 z-40 w-[min(32rem,calc(100%-2rem))] -translate-x-1/2 rounded-lg border-2 border-teal-500 bg-teal-100 px-4 py-3 font-semibold text-teal-900 shadow-lg transition-opacity duration-500';
+    toast.textContent = message;
+    toast.dataset.flash = kind === 'error' ? '8000' : '4000';
+    document.querySelectorAll('[data-flash]').forEach((old) => old.remove());
+    document.body.append(toast);
+    scheduleFade(toast);
+}
+
+function scheduleFade(el) {
     setTimeout(() => {
         el.classList.add('opacity-0');
         setTimeout(() => el.remove(), 600);
     }, Number(el.dataset.flash) || 4000);
-});
+}
+
+// Notifications fade out on their own
+document.querySelectorAll('[data-flash]').forEach(scheduleFade);
 
 // Edit / remove modal for menu items
 const itemDialog = document.getElementById('item-dialog');
@@ -185,5 +203,104 @@ if (addDialog && addConfirmDialog) {
             priceField.value = addDialog.dataset.oldPrice;
             addDialog.showModal();
         }
+    }
+}
+
+// Items page: active toggle (saves right away)
+document.querySelectorAll('[data-item-toggle]').forEach((toggle) => {
+    toggle.addEventListener('click', async () => {
+        const next = toggle.getAttribute('aria-checked') !== 'true';
+        const { url, name } = toggle.dataset;
+
+        toggle.setAttribute('aria-checked', String(next));
+        toggle.disabled = true;
+
+        try {
+            const response = await fetch(url, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({ is_active: next }),
+            });
+
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            showToast(`${name} is now ${next ? 'active' : 'inactive'}.`);
+        } catch {
+            toggle.setAttribute('aria-checked', String(!next));
+            showToast(`Couldn't update ${name}. Please try again.`, 'error');
+        } finally {
+            toggle.disabled = false;
+        }
+    });
+});
+
+// Items page: delete with confirmation
+const deleteItemDialog = document.getElementById('delete-item-dialog');
+
+if (deleteItemDialog) {
+    const deleteItemForm = deleteItemDialog.querySelector('[data-delete-item-form]');
+
+    wireDialog(deleteItemDialog);
+
+    document.querySelectorAll('[data-item-delete]').forEach((button) => {
+        button.addEventListener('click', () => {
+            deleteItemForm.action = button.dataset.url;
+            deleteItemDialog.querySelector('[data-delete-item-name]').textContent = button.dataset.name;
+            deleteItemDialog.showModal();
+        });
+    });
+}
+
+// Items page: add item
+const createItemDialog = document.getElementById('create-item-dialog');
+const createItemConfirmDialog = document.getElementById('create-item-confirm-dialog');
+
+if (createItemDialog && createItemConfirmDialog) {
+    const form = createItemDialog.querySelector('[data-create-item-form]');
+    const { name: nameField, default_price: priceField, category_id: categoryField } = form.elements;
+
+    [createItemDialog, createItemConfirmDialog].forEach(wireDialog);
+
+    document.querySelector('[data-create-item-open]').addEventListener('click', () => {
+        nameField.value = '';
+        priceField.value = '';
+
+        // Start on the category whose tab is currently showing
+        const activeTab = document.querySelector('[role="tab"][aria-selected="true"]');
+        categoryField.value = activeTab ? activeTab.id.replace('tab-', '') : '';
+
+        createItemDialog.showModal();
+    });
+
+    // Saving asks for confirmation first
+    form.addEventListener('submit', (event) => {
+        if (form.dataset.confirmed) return;
+
+        event.preventDefault();
+        if (!form.reportValidity()) return;
+
+        createItemConfirmDialog.querySelector('[data-confirm-item-name]').textContent = nameField.value.trim();
+        createItemConfirmDialog.querySelector('[data-confirm-item-category]').textContent = categoryField.selectedOptions[0].textContent;
+        createItemConfirmDialog.querySelector('[data-confirm-item-price]').textContent = '₱' + Number(priceField.value).toFixed(2);
+        createItemConfirmDialog.showModal();
+    });
+
+    createItemConfirmDialog.querySelector('[data-create-item-confirm]').addEventListener('click', (event) => {
+        event.currentTarget.disabled = true;
+        form.dataset.confirmed = '1';
+        form.requestSubmit();
+    });
+
+    // The server sent us back with validation errors: reopen with what was entered
+    if (createItemDialog.dataset.reopen) {
+        nameField.value = createItemDialog.dataset.oldName;
+        priceField.value = createItemDialog.dataset.oldPrice;
+        categoryField.value = createItemDialog.dataset.oldCategory;
+        createItemDialog.showModal();
     }
 }

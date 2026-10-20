@@ -3,6 +3,8 @@
 @section('content')
 <div data-shell data-menu="closed" class="group/shell min-h-dvh">
 
+    @include('partials.flash')
+
     <header class="fixed inset-x-0 top-0 z-30 flex h-16 items-center justify-between gap-3 bg-teal-700 px-3 text-cream-50 sm:px-5">
 
         <div class="flex items-center gap-3">
