@@ -9,6 +9,14 @@
         <p class="font-semibold text-ink-soft">{{ now()->format('l, F j') }}</p>
     </div>
 
+    @if (session('status'))
+        <p role="status" class="mt-4 rounded-lg border-2 border-teal-500 bg-teal-100 px-4 py-3 font-semibold text-teal-900">{{ session('status') }}</p>
+    @endif
+
+    @if ($errors->has('daily_item'))
+        <p role="alert" class="mt-4 rounded-lg border-2 border-danger bg-danger/10 px-4 py-3 font-semibold text-danger">{{ $errors->first('daily_item') }}</p>
+    @endif
+
     @if ($categories->isEmpty())
         <p class="mt-8 rounded-xl border-2 border-dashed border-cream-200 px-6 py-12 text-center text-ink-soft">
             There's nothing on today's menu yet.
@@ -45,17 +53,28 @@
                     <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
                         @foreach ($menuByCategory[$category->id] as $dailyItem)
                             @php($soldOut = $dailyItem->status === 'SOLD OUT')
-                            <li @class([
-                                'flex min-h-32 flex-col justify-between gap-3 rounded-xl border-2 border-t-4 border-cream-200 border-t-amber-500 bg-cream-50 p-4',
-                                'opacity-60' => $soldOut,
-                            ])>
-                                <div>
-                                    <h2 class="font-display text-lg font-bold leading-snug text-ink">{{ $dailyItem->item->name }}</h2>
-                                    @if ($soldOut)
-                                        <span class="mt-1 inline-block rounded bg-ink px-2 py-0.5 text-xs font-bold text-cream-50">Sold out</span>
-                                    @endif
-                                </div>
-                                <p class="text-xl font-bold text-teal-700">₱{{ number_format($dailyItem->price, 2) }}</p>
+                            <li>
+                                <button
+                                    type="button"
+                                    data-daily-item
+                                    data-id="{{ $dailyItem->id }}"
+                                    data-name="{{ $dailyItem->item->name }}"
+                                    data-price="{{ $dailyItem->price }}"
+                                    data-status="{{ $dailyItem->status }}"
+                                    @class([
+                                        'flex h-full min-h-32 w-full cursor-pointer flex-col justify-between gap-3 rounded-xl border-2 border-t-4 p-4 text-left transition hover:shadow-md active:scale-[0.98]',
+                                        'border-cream-200 border-t-amber-500 bg-cream-50' => ! $soldOut,
+                                        'border-ink/10 border-t-ink/20 bg-ink/5 opacity-60 grayscale' => $soldOut,
+                                    ])
+                                >
+                                    <span>
+                                        <span class="block font-display text-lg font-bold leading-snug text-ink">{{ $dailyItem->item->name }}</span>
+                                        @if ($soldOut)
+                                            <span class="mt-1 inline-block rounded bg-ink px-2 py-0.5 text-xs font-bold text-cream-50">Sold out</span>
+                                        @endif
+                                    </span>
+                                    <span class="text-xl font-bold text-teal-700">₱{{ number_format($dailyItem->price, 2) }}</span>
+                                </button>
                             </li>
                         @endforeach
                     </ul>
@@ -64,6 +83,91 @@
         </div>
     @endif
 </div>
+
+{{-- Edit modal --}}
+<dialog
+    id="item-dialog"
+    aria-labelledby="item-dialog-title"
+    data-reopen="{{ old('daily_item_id') }}"
+    data-old-price="{{ old('price') }}"
+    data-old-status="{{ old('status') }}"
+    class="m-auto max-h-[calc(100dvh-2rem)] w-[min(28rem,calc(100%-2rem))] overflow-y-auto rounded-2xl border-2 border-cream-200 bg-cream-50 p-0 text-ink shadow-2xl backdrop:bg-ink/50"
+>
+    <div class="flex items-start justify-between gap-4 border-b-2 border-cream-200 px-5 py-4">
+        <div class="min-w-0">
+            <p class="text-sm font-bold uppercase tracking-wide text-ink-soft">Edit menu item</p>
+            <h2 id="item-dialog-title" data-dialog-name class="font-display text-2xl font-bold leading-tight text-teal-900"></h2>
+        </div>
+        <button type="button" data-dialog-close aria-label="Close" class="-mr-2 flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg text-ink hover:bg-cream-100">
+            <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+    </div>
+
+    <form method="POST" data-update-form data-url="{{ route('daily-items.update', '__ID__') }}" class="space-y-5 px-5 py-5" novalidate>
+        @csrf
+        @method('PUT')
+        <input type="hidden" name="daily_item_id">
+
+        <div>
+            <label for="item-price" class="block text-sm font-bold">Price</label>
+            <div class="relative mt-1.5">
+                <span class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-lg font-bold text-ink-soft">₱</span>
+                <input
+                    id="item-price" name="price" type="number" inputmode="decimal" step="0.01" min="0" required
+                    @class([
+                        'w-full rounded-lg border-2 bg-white py-3 pl-10 pr-4 text-lg font-bold text-ink',
+                        'border-cream-200 focus:border-teal-500' => ! $errors->has('price'),
+                        'border-danger' => $errors->has('price'),
+                    ])
+                >
+            </div>
+            @error('price')
+                <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
+            @enderror
+        </div>
+
+        <fieldset>
+            <legend class="text-sm font-bold">Status</legend>
+            <div class="mt-1.5 grid grid-cols-2 gap-2">
+                <label class="cursor-pointer">
+                    <input type="radio" name="status" value="AVAILABLE" class="peer sr-only">
+                    <span class="block rounded-lg border-2 border-cream-200 bg-white px-3 py-2.5 text-center font-bold peer-checked:border-teal-700 peer-checked:bg-teal-700 peer-checked:text-cream-50 peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-teal-500">Available</span>
+                </label>
+                <label class="cursor-pointer">
+                    <input type="radio" name="status" value="SOLD OUT" class="peer sr-only">
+                    <span class="block rounded-lg border-2 border-cream-200 bg-white px-3 py-2.5 text-center font-bold peer-checked:border-ink peer-checked:bg-ink peer-checked:text-cream-50 peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-teal-500">Sold out</span>
+                </label>
+            </div>
+            @error('status')
+                <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
+            @enderror
+        </fieldset>
+
+        <button type="submit" class="w-full cursor-pointer rounded-lg bg-amber-500 px-4 py-3 font-display text-lg font-bold text-ink shadow-[0_4px_0_0_var(--color-amber-600)] transition hover:bg-amber-400 active:translate-y-[2px] active:shadow-[0_2px_0_0_var(--color-amber-600)]">Save changes</button>
+    </form>
+
+    <div class="border-t-2 border-cream-200 px-5 py-4">
+        <button type="button" data-confirm-open class="w-full cursor-pointer rounded-lg border-2 border-danger px-4 py-2.5 font-bold text-danger hover:bg-danger hover:text-cream-50">Remove from menu</button>
+    </div>
+</dialog>
+
+{{-- Remove confirmation --}}
+<dialog
+    id="confirm-dialog"
+    aria-labelledby="confirm-dialog-title"
+    class="m-auto w-[min(24rem,calc(100%-2rem))] rounded-2xl border-2 border-cream-200 bg-cream-50 p-0 text-ink shadow-2xl backdrop:bg-ink/50"
+>
+    <form method="POST" data-delete-form data-url="{{ route('daily-items.destroy', '__ID__') }}" class="p-5">
+        @csrf
+        @method('DELETE')
+        <h2 id="confirm-dialog-title" class="font-display text-2xl font-bold leading-tight text-teal-900">Remove from menu?</h2>
+        <p class="mt-2 text-ink-soft"><strong class="text-ink" data-confirm-name></strong> will no longer appear on today's menu.</p>
+        <div class="mt-5 grid grid-cols-2 gap-2">
+            <button type="button" data-dialog-close class="cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-4 py-2.5 font-bold hover:border-teal-500">Cancel</button>
+            <button type="submit" class="cursor-pointer rounded-lg bg-danger px-4 py-2.5 font-bold text-cream-50 hover:brightness-110">Remove</button>
+        </div>
+    </form>
+</dialog>
 
 {{-- Reserved for action buttons --}}
 <div class="fixed inset-x-0 bottom-0 z-10 h-20 border-t-2 border-cream-200 bg-cream-50 transition-[left] duration-200 lg:group-data-[menu=open]/shell:left-64"></div>

@@ -13,11 +13,21 @@ class ItemSeeder extends Seeder
      */
     public function run(): void
     {
-        for ($i = 1; $i <= 3; $i++) {
+        $category = 1;
+        for ($i = 1; $i <= 20; $i++) {
+            if (Item::where('category_id', $category)->count() >= 8) {
+                $category++;
+            }
+            $price = rand(60, 100);
+            if ($category == 2) {
+                $price = rand(25, 30);
+            } elseif ($category == 3) {
+                $price = rand(10, 20);
+            }
             Item::create([
                 'name' => "Item $i",
-                'default_price' => rand(10, 100),
-                'category_id' => $i,
+                'default_price' => $price,
+                'category_id' => $category,
             ]);
         }
     }
