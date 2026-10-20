@@ -34,3 +34,29 @@ if (shell && menuToggle) {
         }
     });
 }
+
+// Tabs
+document.querySelectorAll('[data-tabs]').forEach((root) => {
+    const tabs = [...root.querySelectorAll('[role="tab"]')];
+
+    const select = (tab, focus = false) => {
+        tabs.forEach((t) => {
+            const active = t === tab;
+            t.setAttribute('aria-selected', String(active));
+            t.tabIndex = active ? 0 : -1;
+            document.getElementById(t.getAttribute('aria-controls')).hidden = !active;
+        });
+        if (focus) tab.focus();
+    };
+
+    tabs.forEach((tab, i) => {
+        tab.addEventListener('click', () => select(tab));
+
+        tab.addEventListener('keydown', (event) => {
+            const target = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[event.key];
+            if (target === undefined) return;
+            event.preventDefault();
+            select(tabs[(target + tabs.length) % tabs.length], true);
+        });
+    });
+});
