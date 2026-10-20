@@ -10,20 +10,20 @@ use App\Http\Controllers\{
 };
 
 Route::name('api.')->group(function () {
-    Route::post('auth/login', [AuthController::class, 'login']);
+    Route::post('auth/login', [AuthController::class, 'login'])->name('auth.login');
 
     Route::group(['middleware' => 'auth:sanctum'], function () {
-        Route::post('auth/logout', [AuthController::class, 'logout']);
+        Route::post('auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
 
         Route::apiResource('items', ItemController::class);
 
-        Route::get('daily-items', [DailyItemController::class, 'index']);
-        Route::post('daily-items', [DailyItemController::class, 'addDailyItem']);
-        Route::delete('daily-items/{dailyItem}', [DailyItemController::class, 'removeDailyItem']);
-        Route::put('daily-items/{dailyItem}', [DailyItemController::class, 'updateDailyItem']);
+        Route::get('daily-items', [DailyItemController::class, 'index'])->name('daily-items.index');
+        Route::post('daily-items', [DailyItemController::class, 'addDailyItem'])->name('daily-items.add');
+        Route::delete('daily-items/{dailyItem}', [DailyItemController::class, 'removeDailyItem'])->name('daily-items.remove');
+        Route::put('daily-items/{dailyItem}', [DailyItemController::class, 'updateDailyItem'])->name('daily-items.update');
 
         Route::apiResource('transactions', TransactionController::class);
-        Route::put('transactions/{transaction}/cancel', [TransactionController::class, 'cancelTransaction']);
-        Route::put('transactions/{transaction}/refund', [TransactionController::class, 'refundTransaction']);
+        Route::put('transactions/{transaction}/cancel', [TransactionController::class, 'cancelTransaction'])->name('transactions.cancel');
+        Route::put('transactions/{transaction}/refund', [TransactionController::class, 'refundTransaction'])->name('transactions.refund');
     });
 });
