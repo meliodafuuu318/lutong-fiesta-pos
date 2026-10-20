@@ -7,7 +7,7 @@ use Illuminate\Foundation\Http\FormRequest;
 class WebStoreItemRequest extends FormRequest
 {
     /** Keeps these errors apart from any other form on the page. */
-    protected $errorBag = 'createItem';
+    protected $errorBag = 'itemForm';
 
     public function authorize(): bool
     {

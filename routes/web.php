@@ -17,6 +17,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/items', [ItemController::class, 'index'])->name('items.index');
     Route::post('/items', [ItemController::class, 'store'])->name('items.store');
+    Route::put('/items/{item}', [ItemController::class, 'update'])->name('items.update');
     Route::patch('/items/{item}/active', [ItemController::class, 'toggleActive'])->name('items.toggle-active');
     Route::delete('/items/{item}', [ItemController::class, 'destroy'])->name('items.destroy');
     Route::post('/daily-items', [DailyItemController::class, 'store'])->name('daily-items.store');

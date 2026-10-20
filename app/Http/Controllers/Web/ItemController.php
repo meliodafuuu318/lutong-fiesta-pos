@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Item\WebStoreItemRequest;
 use App\Http\Requests\Item\WebToggleItemActiveRequest;
+use App\Http\Requests\Item\WebUpdateItemRequest;
 use App\Models\Category;
 use App\Models\Item;
 use Illuminate\Http\JsonResponse;
@@ -44,6 +45,19 @@ class ItemController extends Controller
 
         return redirect()->to(route('items.index') . '#tab-' . $item->category_id)
             ->with('status', "{$item->name} added.");
+    }
+
+    public function update(WebUpdateItemRequest $request, Item $item): RedirectResponse
+    {
+        $item->fill($request->validated());
+        $categoryChanged = $item->isDirty('category_id');
+        $item->save();
+
+        // Stay on the same page of the list, unless the item moved to another category.
+        $base = $categoryChanged ? route('items.index') : url()->previous(route('items.index'));
+
+        return redirect()->to($base . '#tab-' . $item->category_id)
+            ->with('status', "{$item->name} updated.");
     }
 
     public function toggleActive(WebToggleItemActiveRequest $request, Item $item): JsonResponse

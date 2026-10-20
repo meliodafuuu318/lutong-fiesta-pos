@@ -256,17 +256,48 @@ if (deleteItemDialog) {
     });
 }
 
-// Items page: add item
-const createItemDialog = document.getElementById('create-item-dialog');
-const createItemConfirmDialog = document.getElementById('create-item-confirm-dialog');
+// Items page: add / edit item (one modal, two modes)
+const itemFormDialog = document.getElementById('item-form-dialog');
+const itemFormConfirmDialog = document.getElementById('item-form-confirm-dialog');
 
-if (createItemDialog && createItemConfirmDialog) {
-    const form = createItemDialog.querySelector('[data-create-item-form]');
-    const { name: nameField, default_price: priceField, category_id: categoryField } = form.elements;
+if (itemFormDialog && itemFormConfirmDialog) {
+    const form = itemFormDialog.querySelector('[data-item-form]');
+    const {
+        _method: methodField,
+        item_id: itemIdField,
+        name: nameField,
+        default_price: priceField,
+        category_id: categoryField,
+    } = form.elements;
 
-    [createItemDialog, createItemConfirmDialog].forEach(wireDialog);
+    const copy = {
+        add: { title: 'Add Item', submit: 'Save Item', confirmTitle: 'Save Item?', verb: 'added to' },
+        edit: { title: 'Edit Item', submit: 'Save Changes', confirmTitle: 'Save Changes?', verb: 'saved in' },
+    };
 
-    document.querySelector('[data-create-item-open]').addEventListener('click', () => {
+    let mode = 'add';
+
+    const setMode = (next) => {
+        mode = next;
+        const text = copy[next];
+
+        itemFormDialog.querySelector('[data-form-title]').textContent = text.title;
+        itemFormDialog.querySelector('[data-form-submit]').textContent = text.submit;
+        itemFormConfirmDialog.querySelector('[data-confirm-title]').textContent = text.confirmTitle;
+        itemFormConfirmDialog.querySelector('[data-confirm-verb]').textContent = text.verb;
+        itemFormConfirmDialog.querySelector('[data-item-form-confirm]').textContent = text.submit;
+
+        // Editing: PUT to the item's URL, and the name can't be changed
+        methodField.disabled = next !== 'edit';
+        nameField.readOnly = next === 'edit';
+        if (next === 'add') {
+            form.action = form.dataset.storeUrl;
+            itemIdField.value = '';
+        }
+    };
+
+    const openAdd = () => {
+        setMode('add');
         nameField.value = '';
         priceField.value = '';
 
@@ -274,7 +305,25 @@ if (createItemDialog && createItemConfirmDialog) {
         const activeTab = document.querySelector('[role="tab"][aria-selected="true"]');
         categoryField.value = activeTab ? activeTab.id.replace('tab-', '') : '';
 
-        createItemDialog.showModal();
+        itemFormDialog.showModal();
+    };
+
+    const openEdit = (button, overrides = {}) => {
+        setMode('edit');
+        form.action = button.dataset.url;
+        itemIdField.value = button.dataset.id;
+        nameField.value = button.dataset.name;
+        priceField.value = overrides.price || button.dataset.price;
+        categoryField.value = overrides.category || button.dataset.category;
+
+        itemFormDialog.showModal();
+    };
+
+    [itemFormDialog, itemFormConfirmDialog].forEach(wireDialog);
+
+    document.querySelector('[data-item-add-open]').addEventListener('click', openAdd);
+    document.querySelectorAll('[data-item-edit]').forEach((button) => {
+        button.addEventListener('click', () => openEdit(button));
     });
 
     // Saving asks for confirmation first
@@ -284,23 +333,31 @@ if (createItemDialog && createItemConfirmDialog) {
         event.preventDefault();
         if (!form.reportValidity()) return;
 
-        createItemConfirmDialog.querySelector('[data-confirm-item-name]').textContent = nameField.value.trim();
-        createItemConfirmDialog.querySelector('[data-confirm-item-category]').textContent = categoryField.selectedOptions[0].textContent;
-        createItemConfirmDialog.querySelector('[data-confirm-item-price]').textContent = '₱' + Number(priceField.value).toFixed(2);
-        createItemConfirmDialog.showModal();
+        itemFormConfirmDialog.querySelector('[data-confirm-name]').textContent = nameField.value.trim();
+        itemFormConfirmDialog.querySelector('[data-confirm-category]').textContent = categoryField.selectedOptions[0].textContent;
+        itemFormConfirmDialog.querySelector('[data-confirm-price]').textContent = '₱' + Number(priceField.value).toFixed(2);
+        itemFormConfirmDialog.showModal();
     });
 
-    createItemConfirmDialog.querySelector('[data-create-item-confirm]').addEventListener('click', (event) => {
+    itemFormConfirmDialog.querySelector('[data-item-form-confirm]').addEventListener('click', (event) => {
         event.currentTarget.disabled = true;
         form.dataset.confirmed = '1';
         form.requestSubmit();
     });
 
     // The server sent us back with validation errors: reopen with what was entered
-    if (createItemDialog.dataset.reopen) {
-        nameField.value = createItemDialog.dataset.oldName;
-        priceField.value = createItemDialog.dataset.oldPrice;
-        categoryField.value = createItemDialog.dataset.oldCategory;
-        createItemDialog.showModal();
+    if (itemFormDialog.dataset.reopen) {
+        const { oldItemId, oldName, oldPrice, oldCategory } = itemFormDialog.dataset;
+        const editButton = oldItemId && document.querySelector(`[data-item-edit][data-id="${oldItemId}"]`);
+
+        if (editButton) {
+            openEdit(editButton, { price: oldPrice, category: oldCategory });
+        } else {
+            setMode('add');
+            nameField.value = oldName;
+            priceField.value = oldPrice;
+            categoryField.value = oldCategory;
+            itemFormDialog.showModal();
+        }
     }
 }
