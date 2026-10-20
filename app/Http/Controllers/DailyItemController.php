@@ -9,14 +9,25 @@ use App\Models\{
 };
 use App\Http\Requests\DailyItem\{
     AddDailyItemRequest,
-    UpdateDailyItemRequest
+    UpdateDailyItemRequest,
+    IndexDailyItemRequest
 };
 use App\Http\Resources\DailyItemResource;
 
 class DailyItemController extends Controller
 {
-    public function index() {
-        $dailyMenu = DailyItem::todayMenu()->get();
+    public function index(IndexDailyItemRequest $request) {
+        $dailyMenu = DailyItem::todayMenu();
+
+        if ($request->has('category')) {
+            $category = $request->input('category');
+            $dailyMenu->whereHas('item.category', function ($query) use ($category) {
+                $query->where('name', $category);
+            });
+        }
+
+        $dailyMenu = $dailyMenu->get();
+
         return $this->success('Today\'s menu retrieved successfully', DailyItemResource::collection($dailyMenu), 200);
     }
 
