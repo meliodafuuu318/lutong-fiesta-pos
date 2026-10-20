@@ -22,8 +22,8 @@
 
 <div class="pb-28">
     <div class="flex flex-wrap items-baseline justify-between gap-x-4">
-        <h1 class="font-display text-3xl font-bold text-teal-900">Today's menu</h1>
-        <p class="font-semibold text-ink-soft">{{ now()->format('l, F j') }}</p>
+        <h1 class="font-display text-3xl font-bold text-teal-900">Today's Menu</h1>
+        <p class="font-semibold text-ink-soft">{{ now()->format('l, F j, Y') }}</p>
     </div>
 
     @if ($categories->isEmpty())
@@ -272,11 +272,11 @@
         type="button"
         data-create-transaction
         class="flex-1 cursor-pointer rounded-lg bg-amber-500 px-4 py-3 font-display text-base font-bold leading-tight text-ink shadow-[0_4px_0_0_var(--color-amber-600)] transition hover:bg-amber-400 active:translate-y-[2px] active:shadow-[0_2px_0_0_var(--color-amber-600)] sm:flex-none sm:px-6 sm:text-lg"
-    >Create transaction</button>
+    >Create Transaction</button>
     <button
         type="button"
         data-add-item-open
         class="flex-1 cursor-pointer rounded-lg border-2 border-teal-700 px-4 py-3 font-display text-base font-bold leading-tight text-teal-700 transition hover:bg-teal-700 hover:text-cream-50 sm:flex-none sm:px-6 sm:text-lg"
-    >Add item to menu</button>
+    >Add Item to Menu</button>
 </div>
 @endsection

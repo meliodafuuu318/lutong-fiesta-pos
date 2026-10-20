@@ -35,7 +35,7 @@
                 <button
                     type="submit"
                     class="cursor-pointer rounded-lg border-2 border-cream-50/70 px-3 py-1.5 text-sm font-bold hover:bg-cream-50 hover:text-teal-900 focus-visible:outline-cream-50"
-                >Sign out</button>
+                >Sign Out</button>
             </form>
         </div>
     </header>
