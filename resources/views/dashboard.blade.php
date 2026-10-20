@@ -3,19 +3,28 @@
 @section('title', 'Dashboard · ' . config('app.name'))
 
 @section('main')
+{{-- Notification: fixed so that it disappearing never shifts the page --}}
+@if (session('status'))
+    <p
+        role="status"
+        data-flash="4000"
+        class="pointer-events-none fixed left-1/2 top-20 z-40 w-[min(32rem,calc(100%-2rem))] -translate-x-1/2 rounded-lg border-2 border-teal-500 bg-teal-100 px-4 py-3 font-semibold text-teal-900 shadow-lg transition-opacity duration-500"
+    >{{ session('status') }}</p>
+@endif
+
+@if ($errors->has('daily_item'))
+    <p
+        role="alert"
+        data-flash="8000"
+        class="pointer-events-none fixed left-1/2 top-20 z-40 w-[min(32rem,calc(100%-2rem))] -translate-x-1/2 rounded-lg border-2 border-danger bg-cream-50 px-4 py-3 font-semibold text-danger shadow-lg transition-opacity duration-500"
+    >{{ $errors->first('daily_item') }}</p>
+@endif
+
 <div class="pb-28">
     <div class="flex flex-wrap items-baseline justify-between gap-x-4">
         <h1 class="font-display text-3xl font-bold text-teal-900">Today's menu</h1>
         <p class="font-semibold text-ink-soft">{{ now()->format('l, F j') }}</p>
     </div>
-
-    @if (session('status'))
-        <p role="status" class="mt-4 rounded-lg border-2 border-teal-500 bg-teal-100 px-4 py-3 font-semibold text-teal-900">{{ session('status') }}</p>
-    @endif
-
-    @if ($errors->has('daily_item'))
-        <p role="alert" class="mt-4 rounded-lg border-2 border-danger bg-danger/10 px-4 py-3 font-semibold text-danger">{{ $errors->first('daily_item') }}</p>
-    @endif
 
     @if ($categories->isEmpty())
         <p class="mt-8 rounded-xl border-2 border-dashed border-cream-200 px-6 py-12 text-center text-ink-soft">
@@ -169,6 +178,105 @@
     </form>
 </dialog>
 
-{{-- Reserved for action buttons --}}
-<div class="fixed inset-x-0 bottom-0 z-10 h-20 border-t-2 border-cream-200 bg-cream-50 transition-[left] duration-200 lg:group-data-[menu=open]/shell:left-64"></div>
+{{-- Add item modal --}}
+<dialog
+    id="add-dialog"
+    aria-labelledby="add-dialog-title"
+    data-reopen="{{ $errors->addItem->any() ? '1' : '' }}"
+    data-old-item="{{ old('item_id') }}"
+    data-old-price="{{ old('price') }}"
+    class="m-auto max-h-[calc(100dvh-2rem)] w-[min(28rem,calc(100%-2rem))] overflow-y-auto rounded-2xl border-2 border-cream-200 bg-cream-50 p-0 text-ink shadow-2xl backdrop:bg-ink/50"
+>
+    <div class="flex items-start justify-between gap-4 border-b-2 border-cream-200 px-5 py-4">
+        <h2 id="add-dialog-title" class="font-display text-2xl font-bold leading-tight text-teal-900">Add item to menu</h2>
+        <button type="button" data-dialog-close aria-label="Close" class="-mr-2 flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg text-ink hover:bg-cream-100">
+            <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+    </div>
+
+    <form method="POST" action="{{ route('daily-items.store') }}" data-add-form class="px-5 py-5">
+        @csrf
+
+        @if ($addableItems->isEmpty())
+            <p class="rounded-lg border-2 border-dashed border-cream-200 px-4 py-6 text-center text-ink-soft">Every item is already on today's menu.</p>
+        @else
+            <div class="space-y-5">
+                <div>
+                    <label for="add-item" class="block text-sm font-bold">Item</label>
+                    <select
+                        id="add-item" name="item_id" required
+                        class="mt-1.5 w-full cursor-pointer rounded-lg border-2 bg-white px-4 py-3 text-base font-semibold text-ink @error('item_id', 'addItem') border-danger @else border-cream-200 focus:border-teal-500 @enderror"
+                    >
+                        <option value="">Choose an item…</option>
+                        {{-- options:start --}}
+                        @foreach ($addableItems as $categoryName => $categoryItems)
+                            <optgroup label="{{ $categoryName }}">
+                                @foreach ($categoryItems as $item)
+                                    <option value="{{ $item->id }}" data-name="{{ $item->name }}" data-price="{{ $item->default_price }}" @selected(old('item_id') == $item->id)>{{ $item->name }}</option>
+                                @endforeach
+                            </optgroup>
+                        @endforeach
+                        {{-- options:end --}}
+                    </select>
+                    @error('item_id', 'addItem')
+                        <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="add-price" class="block text-sm font-bold">Price</label>
+                    <div class="relative mt-1.5">
+                        <span class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-lg font-bold text-ink-soft">₱</span>
+                        <input
+                            id="add-price" name="price" type="number" inputmode="decimal" step="0.01" min="0" required
+                            class="w-full rounded-lg border-2 bg-white py-3 pl-10 pr-4 text-lg font-bold text-ink @error('price', 'addItem') border-danger @else border-cream-200 focus:border-teal-500 @enderror"
+                        >
+                    </div>
+                    @error('price', 'addItem')
+                        <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
+                    @enderror
+                </div>
+            </div>
+        @endif
+
+        <div class="mt-6 grid grid-cols-2 gap-2">
+            <button type="button" data-dialog-close class="cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-4 py-3 font-bold hover:border-teal-500">Cancel</button>
+            <button
+                type="submit"
+                @disabled($addableItems->isEmpty())
+                class="cursor-pointer rounded-lg bg-amber-500 px-4 py-3 font-display text-lg font-bold leading-snug text-ink shadow-[0_4px_0_0_var(--color-amber-600)] transition hover:bg-amber-400 active:translate-y-[2px] active:shadow-[0_2px_0_0_var(--color-amber-600)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+            >Save</button>
+        </div>
+    </form>
+</dialog>
+
+{{-- Add item confirmation --}}
+<dialog
+    id="add-confirm-dialog"
+    aria-labelledby="add-confirm-title"
+    class="m-auto w-[min(24rem,calc(100%-2rem))] rounded-2xl border-2 border-cream-200 bg-cream-50 p-0 text-ink shadow-2xl backdrop:bg-ink/50"
+>
+    <div class="p-5">
+        <h2 id="add-confirm-title" class="font-display text-2xl font-bold leading-tight text-teal-900">Add to menu?</h2>
+        <p class="mt-2 text-ink-soft"><strong class="text-ink" data-add-confirm-name></strong> will be added to today's menu at <strong class="text-ink" data-add-confirm-price></strong>.</p>
+        <div class="mt-5 grid grid-cols-2 gap-2">
+            <button type="button" data-dialog-close class="cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-4 py-2.5 font-bold hover:border-teal-500">Cancel</button>
+            <button type="button" data-add-confirm class="cursor-pointer rounded-lg bg-amber-500 px-4 py-2.5 font-bold text-ink hover:bg-amber-400 disabled:opacity-50">Add to menu</button>
+        </div>
+    </div>
+</dialog>
+
+{{-- Bottom action bar --}}
+<div class="fixed inset-x-0 bottom-0 z-10 flex h-20 items-center justify-end gap-3 border-t-2 border-cream-200 bg-cream-50 px-4 transition-[left] duration-200 sm:px-8 lg:group-data-[menu=open]/shell:left-64">
+    <button
+        type="button"
+        data-create-transaction
+        class="flex-1 cursor-pointer rounded-lg bg-amber-500 px-4 py-3 font-display text-base font-bold leading-tight text-ink shadow-[0_4px_0_0_var(--color-amber-600)] transition hover:bg-amber-400 active:translate-y-[2px] active:shadow-[0_2px_0_0_var(--color-amber-600)] sm:flex-none sm:px-6 sm:text-lg"
+    >Create transaction</button>
+    <button
+        type="button"
+        data-add-item-open
+        class="flex-1 cursor-pointer rounded-lg border-2 border-teal-700 px-4 py-3 font-display text-base font-bold leading-tight text-teal-700 transition hover:bg-teal-700 hover:text-cream-50 sm:flex-none sm:px-6 sm:text-lg"
+    >Add item to menu</button>
+</div>
 @endsection

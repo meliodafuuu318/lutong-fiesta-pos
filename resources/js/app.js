@@ -71,6 +71,25 @@ document.querySelectorAll('[data-tabs]').forEach((root) => {
     });
 });
 
+// Shared dialog behaviour: close buttons + click on the dimmed backdrop
+function wireDialog(dialog) {
+    dialog.querySelectorAll('[data-dialog-close]').forEach((button) => {
+        button.addEventListener('click', () => dialog.close());
+    });
+
+    dialog.addEventListener('click', (event) => {
+        if (event.target === dialog) dialog.close();
+    });
+}
+
+// Notifications fade out on their own
+document.querySelectorAll('[data-flash]').forEach((el) => {
+    setTimeout(() => {
+        el.classList.add('opacity-0');
+        setTimeout(() => el.remove(), 600);
+    }, Number(el.dataset.flash) || 4000);
+});
+
 // Edit / remove modal for menu items
 const itemDialog = document.getElementById('item-dialog');
 const confirmDialog = document.getElementById('confirm-dialog');
@@ -102,16 +121,7 @@ if (itemDialog && confirmDialog) {
 
     itemDialog.querySelector('[data-confirm-open]').addEventListener('click', () => confirmDialog.showModal());
 
-    [itemDialog, confirmDialog].forEach((dialog) => {
-        dialog.querySelectorAll('[data-dialog-close]').forEach((button) => {
-            button.addEventListener('click', () => dialog.close());
-        });
-
-        // Click on the dimmed backdrop closes the dialog
-        dialog.addEventListener('click', (event) => {
-            if (event.target === dialog) dialog.close();
-        });
-    });
+    [itemDialog, confirmDialog].forEach(wireDialog);
 
     // The server sent us back with validation errors: reopen the same item
     const reopenId = itemDialog.dataset.reopen;
@@ -122,6 +132,58 @@ if (itemDialog && confirmDialog) {
             if (panel) selectTabById(panel.id.replace('panel-', 'tab-'));
             fill(card, { price: itemDialog.dataset.oldPrice, status: itemDialog.dataset.oldStatus });
             itemDialog.showModal();
+        }
+    }
+}
+
+// Add item to menu
+const addDialog = document.getElementById('add-dialog');
+const addConfirmDialog = document.getElementById('add-confirm-dialog');
+
+if (addDialog && addConfirmDialog) {
+    const addForm = addDialog.querySelector('[data-add-form]');
+    const itemSelect = addForm.elements.item_id; // missing when every item is already on the menu
+    const priceField = addForm.elements.price;
+
+    [addDialog, addConfirmDialog].forEach(wireDialog);
+
+    document.querySelector('[data-add-item-open]').addEventListener('click', () => {
+        if (itemSelect) {
+            itemSelect.value = '';
+            priceField.value = '';
+        }
+        addDialog.showModal();
+    });
+
+    if (itemSelect) {
+        // Picking an item pre-fills its default price, which stays editable
+        itemSelect.addEventListener('change', () => {
+            priceField.value = itemSelect.selectedOptions[0]?.dataset.price ?? '';
+        });
+
+        // Saving asks for confirmation first
+        addForm.addEventListener('submit', (event) => {
+            if (addForm.dataset.confirmed) return;
+
+            event.preventDefault();
+            if (!addForm.reportValidity()) return;
+
+            addConfirmDialog.querySelector('[data-add-confirm-name]').textContent = itemSelect.selectedOptions[0].dataset.name;
+            addConfirmDialog.querySelector('[data-add-confirm-price]').textContent = '₱' + Number(priceField.value).toFixed(2);
+            addConfirmDialog.showModal();
+        });
+
+        addConfirmDialog.querySelector('[data-add-confirm]').addEventListener('click', (event) => {
+            event.currentTarget.disabled = true;
+            addForm.dataset.confirmed = '1';
+            addForm.requestSubmit();
+        });
+
+        // The server sent us back with validation errors: reopen with what was entered
+        if (addDialog.dataset.reopen) {
+            itemSelect.value = addDialog.dataset.oldItem;
+            priceField.value = addDialog.dataset.oldPrice;
+            addDialog.showModal();
         }
     }
 }
