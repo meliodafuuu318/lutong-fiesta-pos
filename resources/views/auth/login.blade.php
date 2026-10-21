@@ -8,9 +8,9 @@
     <section class="sunburst flex items-center justify-center px-6 py-10 lg:py-0">
         <img
             src="{{ asset('images/logo.png') }}"
-            alt="Lutong Fiesta — Ulam at Merienda"
-            width="600" height="600"
-            class="size-36 rounded-full shadow-[0_12px_0_0_rgb(11_63_61/0.35)] sm:size-44 lg:size-80"
+            alt="Lutong Piyesta — Ulam at Meryenda"
+            width="1200" height="543"
+            class="h-auto w-[min(18rem,80%)] sm:w-[min(22rem,80%)] lg:w-[min(32rem,80%)]"
         >
     </section>
 

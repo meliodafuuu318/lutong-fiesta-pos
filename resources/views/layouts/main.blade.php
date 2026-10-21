@@ -24,8 +24,8 @@
                 </svg>
             </button>
 
-            <a href="{{ route('dashboard') }}" class="rounded-full focus-visible:outline-cream-50" aria-label="Lutong Piyesta home">
-                <img src="{{ asset('images/logo.png') }}" alt="" width="600" height="600" class="size-11 rounded-full ring-2 ring-cream-50/80">
+            <a href="{{ route('dashboard') }}" class="block rounded focus-visible:outline-cream-50" aria-label="Lutong Piyesta home">
+                <img src="{{ asset('images/logo.png') }}" alt="" width="1200" height="543" class="block h-12 w-auto">
             </a>
         </div>
 
