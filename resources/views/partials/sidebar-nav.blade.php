@@ -3,6 +3,7 @@
     $links = [
         ['label' => 'Dashboard', 'route' => 'dashboard', 'active' => 'dashboard'],
         ['label' => 'Items', 'route' => 'items.index', 'active' => 'items.*'],
+        ['label' => 'Transactions', 'route' => 'transactions.index', 'active' => 'transactions.*'],
     ];
 @endphp
 
