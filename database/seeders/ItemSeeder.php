@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
+use App\Models\Category;
 use App\Models\Item;
+use Illuminate\Database\Seeder;
 
 class ItemSeeder extends Seeder
 {
@@ -13,22 +13,48 @@ class ItemSeeder extends Seeder
      */
     public function run(): void
     {
-        $category = 1;
-        for ($i = 1; $i <= 20; $i++) {
-            if (Item::where('category_id', $category)->count() >= 8) {
-                $category++;
+        $menu = [
+            'Food' => [
+                'Pork Adobo' => 80,
+                'Adobong Atay Balunan' => 80,
+                'Bicol Express' => 80,
+                'Sinigang' => 80,
+                'Chicken Adobo' => 80,
+                'Pinakbet' => 55,
+                'Paksiw' => 75,
+                'Laing' => 55,
+                'Torta Giniling' => 80,
+                'Menudo' => 80,
+                'Fried Tilapia' => 50,
+                'Pork Shanghai' => 10,
+                'Lumpiang Togue' => 15,
+                'Rice' => 15,
+            ],
+            'Beverages' => [
+                'Coke Mismo' => 25,
+                'Sprite Mismo' => 25,
+                'Royal Mismo' => 25,
+                'Coke 1.5L' => 80,
+                'Sprite 1.5L' => 80,
+                'Royal 1.5L' => 80,
+            ],
+            'Add-ons' => [
+                'Sweet Chili Dip' => 5,
+                'Sweet and Sour Dip' => 5,
+                'Spicy Vinegar Dip' => 5,
+                'Toyomansi Dip' => 5,
+            ],
+        ];
+
+        foreach ($menu as $categoryName => $items) {
+            $categoryId = Category::where('name', $categoryName)->firstOrFail()->id;
+
+            foreach ($items as $name => $price) {
+                Item::updateOrCreate(
+                    ['category_id' => $categoryId, 'name' => $name],
+                    ['default_price' => $price],
+                );
             }
-            $price = rand(60, 100);
-            if ($category == 2) {
-                $price = rand(25, 30);
-            } elseif ($category == 3) {
-                $price = rand(10, 20);
-            }
-            Item::create([
-                'name' => "Item $i",
-                'default_price' => $price,
-                'category_id' => $category,
-            ]);
         }
     }
 }
