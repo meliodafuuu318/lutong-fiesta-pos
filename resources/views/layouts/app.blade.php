@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=baloo-2:600,700|nunito-sans:400,600,700&display=swap" rel="stylesheet">
 
-    {{-- @vite(['resources/css/app.css', 'resources/js/app.js']) --}}
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-dvh antialiased">
     @yield('content')
