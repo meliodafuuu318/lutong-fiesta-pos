@@ -19,30 +19,15 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request): RedirectResponse
     {
-        error_log('[LOGIN-DEBUG] Before Auth::attempt');
-
-        try {
-            $authenticated = Auth::attempt(
-                $request->only('username', 'password')
-            );
-
-            error_log('[LOGIN-DEBUG] Auth::attempt returned');
-        } catch (\Throwable $e) {
-            error_log('[LOGIN-DEBUG] Exception: '.get_class($e));
-            error_log('[LOGIN-DEBUG] Message: '.$e->getMessage());
-
-            throw $e;
+        if (! Auth::attempt($request->only('username', 'password'))) {
+            throw ValidationException::withMessages([
+                'username' => 'Username or password is incorrect.',
+            ]);
         }
 
-        // if (! Auth::attempt($request->only('username', 'password'))) {
-        //     throw ValidationException::withMessages([
-        //         'username' => 'Username or password is incorrect.',
-        //     ]);
-        // }
+        $request->session()->regenerate();
 
-        // $request->session()->regenerate();
-
-        // return redirect()->intended(route('dashboard'));
+        return redirect()->intended(route('dashboard'));
     }
 
     public function logout(Request $request): RedirectResponse
