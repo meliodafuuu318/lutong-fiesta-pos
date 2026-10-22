@@ -54,4 +54,14 @@ class TransactionController extends Controller
 
         return view('transactions.index', compact('transactions', 'search', 'type', 'dateFrom', 'dateTo', 'sortBy', 'sortOrder'));
     }
+
+    public function create(): View
+    {
+        return view('transactions.create');
+    }
+
+    public function show(Transaction $transaction): View
+    {
+        return view('transactions.show', compact('transaction'));
+    }
 }

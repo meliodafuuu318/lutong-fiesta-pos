@@ -7,7 +7,7 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
         <h1 class="font-display text-3xl font-bold text-teal-900">Transactions</h1>
         <a
-            href="{{ route('dashboard') }}"
+            href="{{ route('transactions.create') }}"
             class="cursor-pointer rounded-lg bg-amber-500 px-4 py-2.5 font-display text-base font-bold leading-tight text-ink shadow-[0_4px_0_0_var(--color-amber-600)] transition hover:bg-amber-400 active:translate-y-[2px] active:shadow-[0_2px_0_0_var(--color-amber-600)]"
         >Create Transaction</a>
     </div>
@@ -99,7 +99,7 @@
                 </thead>
                 <tbody>
                     @foreach ($transactions as $transaction)
-                        <tr class="border-t-2 border-cream-200 hover:bg-cream-100/60">
+                        <tr class="border-t-2 border-cream-200 hover:bg-cream-100/60 cursor-pointer" onclick="window.location='{{ route('transactions.show', $transaction) }}'">
                             <th scope="row" class="whitespace-nowrap px-4 py-3 font-mono text-sm font-bold text-ink">{{ $transaction->reference_number }}</th>
                             <td class="whitespace-nowrap px-4 py-3 font-semibold text-ink">{{ \Illuminate\Support\Str::title(strtolower($transaction->type)) }}</td>
                             <td class="whitespace-nowrap px-4 py-3 font-bold text-teal-700">₱{{ number_format($transaction->total, 2) }}</td>

@@ -22,6 +22,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('/items/{item}/active', [ItemController::class, 'toggleActive'])->name('items.toggle-active');
     Route::delete('/items/{item}', [ItemController::class, 'destroy'])->name('items.destroy');
     Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
+    Route::get('/transactions/create', [TransactionController::class, 'create'])->name('transactions.create');
+    Route::get('/transactions/{transaction}', [TransactionController::class, 'show'])->name('transactions.show');
     Route::post('/daily-items', [DailyItemController::class, 'store'])->name('daily-items.store');
     Route::put('/daily-items/{dailyItem}', [DailyItemController::class, 'update'])->name('daily-items.update');
     Route::delete('/daily-items/{dailyItem}', [DailyItemController::class, 'destroy'])->name('daily-items.destroy');
