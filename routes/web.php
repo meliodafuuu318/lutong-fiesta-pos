@@ -7,10 +7,6 @@ use App\Http\Controllers\Web\ItemController;
 use App\Http\Controllers\Web\TransactionController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return response('Laravel web route works!', 200);
-});
-
 Route::middleware('guest')->group(function () {
     Route::get('/', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])
