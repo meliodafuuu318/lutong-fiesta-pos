@@ -62,6 +62,16 @@ class TransactionController extends Controller
 
     public function show(Transaction $transaction): View
     {
-        return view('transactions.show', compact('transaction'));
+        $transaction->load([
+            'transactionItems.dailyItem.item',
+            'transactionPayments',
+            'delivery',
+        ]);
+
+        $transaction->loadSum('transactionPayments', 'payment_amount');
+
+        $payments = $transaction->transactionPayments->sortByDesc('id');
+
+        return view('transactions.show', compact('transaction', 'payments'));
     }
 }
