@@ -10,25 +10,60 @@ use App\Models\Category;
 use App\Models\Item;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ItemController extends Controller
 {
     private const PER_PAGE = 10;
 
-    public function index(): View
+    public function index(Request $request): View
     {
         $categories = Category::orderBy('id')->get();
 
-        // One paginator per category, each with its own page parameter so that
-        // paging through one tab leaves the others where they are.
+        $search = $request->input('search');
+        $categoryFilter = $request->input('category', 'ALL');
+        $statusFilter = $request->input('status', 'ALL');
+        $perPage = $request->input('per_page', self::PER_PAGE);
+        $sortBy = $request->input('sort_by', 'name');
+        $sortOrder = $request->input('sort_order', 'asc');
+
+        $query = Item::with('category');
+
+        if ($search) {
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        if ($categoryFilter !== 'ALL') {
+            $query->whereHas('category', function ($q) use ($categoryFilter) {
+                $q->where('name', $categoryFilter);
+            });
+        }
+
+        if ($statusFilter !== 'ALL') {
+            $isActive = $statusFilter === 'ACTIVE' ? true : false;
+            $query->where('is_active', $isActive);
+        }
+
+        $allowedSorts = ['name', 'default_price', 'created_at', 'id'];
+        if (in_array($sortBy, $allowedSorts, true)) {
+            $query->orderBy($sortBy, $sortOrder === 'desc' ? 'desc' : 'asc');
+        } else {
+            $query->orderBy('name', 'asc');
+        }
+
+        $items = $query->paginate($perPage)->withQueryString();
+
+        if ($items->isEmpty() && $items->total() > 0) {
+            $items = $query->paginate($perPage, ['*'], 'page', $items->lastPage())->withQueryString();
+        }
+
         $itemsByCategory = $categories->mapWithKeys(function (Category $category) {
             $pageName = "category_{$category->id}_page";
             $query = Item::where('category_id', $category->id)->orderBy('name');
 
             $items = $query->paginate(self::PER_PAGE, ['*'], $pageName);
 
-            // Deleted the last item of the last page? Show the new last page instead of an empty one.
             if ($items->isEmpty() && $items->total() > 0) {
                 $items = $query->paginate(self::PER_PAGE, ['*'], $pageName, $items->lastPage());
             }
@@ -36,7 +71,7 @@ class ItemController extends Controller
             return [$category->id => $items->withQueryString()->fragment("tab-{$category->id}")];
         });
 
-        return view('items.index', compact('categories', 'itemsByCategory'));
+        return view('items.index', compact('categories', 'itemsByCategory', 'items', 'search', 'categoryFilter', 'statusFilter', 'sortBy', 'sortOrder', 'perPage'));
     }
 
     public function store(WebStoreItemRequest $request): RedirectResponse
