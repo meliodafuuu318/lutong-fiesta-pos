@@ -4,6 +4,7 @@ use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\DailyItemController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\ItemController;
+use App\Http\Controllers\Web\TransactionController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -20,7 +21,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/items/{item}', [ItemController::class, 'update'])->name('items.update');
     Route::patch('/items/{item}/active', [ItemController::class, 'toggleActive'])->name('items.toggle-active');
     Route::delete('/items/{item}', [ItemController::class, 'destroy'])->name('items.destroy');
-    Route::view('/transactions', 'transactions.index')->name('transactions.index');
+    Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
     Route::post('/daily-items', [DailyItemController::class, 'store'])->name('daily-items.store');
     Route::put('/daily-items/{dailyItem}', [DailyItemController::class, 'update'])->name('daily-items.update');
     Route::delete('/daily-items/{dailyItem}', [DailyItemController::class, 'destroy'])->name('daily-items.destroy');

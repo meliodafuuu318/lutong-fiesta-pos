@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\DailyItem;
+use App\Models\Delivery;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\TransactionPayment;
@@ -26,6 +27,18 @@ class TransactionSeeder extends Seeder
 
     /** Most different items in one transaction. */
     private const MAX_ITEMS = 5;
+
+    /** Where deliveries go. */
+    private const ADDRESSES = [
+        'Blk 4 Lot 12 Sampaguita St., Brgy. San Isidro',
+        '27 Mabini Ave., Brgy. Poblacion',
+        'Unit 3B Rosal Apartments, Brgy. Santa Cruz',
+        '118 Narra St., Brgy. Bagong Silang',
+        'Purok 5, Brgy. Maligaya',
+        '9 Acacia Lane, Greenview Subdivision',
+        '56 Rizal St., Brgy. Del Pilar',
+        'Phase 2 Block 7 Lot 3, Villa Esperanza',
+    ];
 
     /**
      * Run the database seeds.
@@ -77,10 +90,12 @@ class TransactionSeeder extends Seeder
             default => ['PENDING', 'PENDING'],
         };
 
+        $type = random_int(1, 100) <= 80 ? 'WALK IN' : 'DELIVERY';
+
         $transaction = $this->saveAt(new Transaction([
             'reference_number' => $this->generateReferenceNumber(),
             'total' => $total,
-            'type' => random_int(1, 100) <= 80 ? 'WALK IN' : 'DELIVERY',
+            'type' => $type,
             'status' => $status,
             'payment_status' => $paymentStatus,
             'transaction_date' => $when,
@@ -88,6 +103,19 @@ class TransactionSeeder extends Seeder
 
         foreach ($lines as $line) {
             $this->saveAt(new TransactionItem($line + ['transaction_id' => $transaction->id]), $when);
+        }
+
+        // Deliveries follow their transaction: delivered once completed, called off with a cancellation.
+        if ($type === 'DELIVERY') {
+            $this->saveAt(new Delivery([
+                'transaction_id' => $transaction->id,
+                'address' => Arr::random(self::ADDRESSES),
+                'status' => match ($status) {
+                    'COMPLETED', 'REFUNDED' => 'DELIVERED',
+                    'CANCELLED' => 'CANCELLED',
+                    default => 'PENDING',
+                },
+            ]), $when);
         }
 
         // Paid and refunded transactions have a payment (cancelled and pending ones don't).

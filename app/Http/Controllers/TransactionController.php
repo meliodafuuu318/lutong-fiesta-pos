@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\{
+    Delivery,
     Transaction,
     TransactionItem,
     TransactionPayment,
@@ -20,7 +21,9 @@ use Illuminate\Support\Facades\DB;
 class TransactionController extends Controller
 {
     public function index(IndexTransactionRequest $request) {
-        $transactions = Transaction::query();
+        $transactions = Transaction::query()
+            ->with('delivery')
+            ->withSum('transactionPayments', 'payment_amount');
 
         if ($request->filled('search')) {
             $transactions->where('reference_number', 'like', '%' . $request->search . '%');
@@ -76,6 +79,14 @@ class TransactionController extends Controller
 
             $transaction->update(['total' => $totalAmount]);
 
+            if ($request->type === 'DELIVERY') {
+                Delivery::create([
+                    'transaction_id' => $transaction->id,
+                    'address' => $request->address,
+                    'status' => 'PENDING',
+                ]);
+            }
+
             if ($request->type === 'WALK IN' && $request->has('payment_method')) {
                 $totalBalance = $transaction->total;
                 $outstandingBalance = $totalBalance - $request->payment_amount;
@@ -98,6 +109,8 @@ class TransactionController extends Controller
 
             DB::commit();
 
+            $transaction->load('delivery');
+
             return $this->success('Transaction created successfully', new TransactionResource($transaction), 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -106,7 +119,7 @@ class TransactionController extends Controller
     }
 
     public function show(Transaction $transaction) {
-        $transaction->load('transactionItems', 'transactionPayments');
+        $transaction->load('transactionItems', 'transactionPayments', 'delivery');
         return $this->success('Transaction retrieved successfully', new TransactionResource($transaction), 200);
     }
 
@@ -115,9 +128,35 @@ class TransactionController extends Controller
             return $this->error('Cannot update a cancelled or refunded transaction', 400);
         }
 
+        $updatesDelivery = $request->filled('address') || $request->filled('delivery_status');
+
+        if ($updatesDelivery) {
+            if ($transaction->type !== 'DELIVERY') {
+                return $this->error('Only delivery transactions have delivery details', 400);
+            }
+
+            // Delivery transactions made before deliveries existed have no delivery yet.
+            if (!$transaction->delivery && !$request->filled('address')) {
+                return $this->error('A delivery address is required', 400);
+            }
+        }
+
         DB::beginTransaction();
 
         try {
+            if ($updatesDelivery) {
+                $deliveryData = array_filter([
+                    'address' => $request->address,
+                    'status' => $request->delivery_status,
+                ]);
+
+                if ($transaction->delivery) {
+                    $transaction->delivery->update($deliveryData);
+                } else {
+                    Delivery::create($deliveryData + ['transaction_id' => $transaction->id]);
+                }
+            }
+
             if ($request->filled('payment_method') && $request->filled('payment_amount')) {
                 $totalBalance = $transaction->total;
                 $outstandingBalance = $transaction->total - $transaction->transactionPayments()->sum('payment_amount') - $request->payment_amount;
@@ -140,6 +179,8 @@ class TransactionController extends Controller
 
             DB::commit();
 
+            $transaction->refresh()->load('delivery');
+
             return $this->success('Transaction updated successfully', new TransactionResource($transaction), 200);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -152,7 +193,16 @@ class TransactionController extends Controller
             return $this->error('Transaction is already cancelled or refunded', 400);
         }
 
-        $transaction->update(['status' => 'CANCELLED', 'payment_status' => 'CANCELLED']);
+        DB::transaction(function () use ($transaction) {
+            $transaction->update(['status' => 'CANCELLED', 'payment_status' => 'CANCELLED']);
+
+            // A delivery that hasn't happened yet is called off together with the order.
+            if ($transaction->delivery?->status === 'PENDING') {
+                $transaction->delivery->update(['status' => 'CANCELLED']);
+            }
+        });
+
+        $transaction->load('delivery');
 
         return $this->success('Transaction cancelled successfully', new TransactionResource($transaction), 200);
     }

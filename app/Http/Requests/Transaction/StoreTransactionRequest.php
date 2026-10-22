@@ -29,6 +29,7 @@ class StoreTransactionRequest extends FormRequest
             'type' => ['required', 'in:WALK IN,DELIVERY'],
             'payment_method' => ['required_if:type,WALK IN', 'in:CASH,GCASH,BANK TRANSFER'],
             'payment_amount' => ['required_with:payment_method', 'numeric', 'min:0'],
+            'address' => ['required_if:type,DELIVERY', 'nullable', 'string', 'max:500'],
         ];
     }
 }
