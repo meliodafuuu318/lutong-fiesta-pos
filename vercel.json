@@ -15,36 +15,28 @@
     ],
     "routes": [
         {
-            "src": "/build/assets/(.*)",
-            "dest": "/public/build/assets/$1"
+            "src": "/build/(.*)",
+            "dest": "/public/build/$1"
         },
         {
-            "src": "/favicon.(.*)",
+            "src": "/images/(.*)",
+            "dest": "/public/images/$1"
+        },
+        {
+            "src": "/favicon\\.(.*)",
             "dest": "/public/favicon.$1"
         },
         {
-            "src": "/apple-touch-icon.png",
+            "src": "/apple-touch-icon\\.png",
             "dest": "/public/apple-touch-icon.png"
         },
         {
-            "src": "/robots.txt",
+            "src": "/robots\\.txt",
             "dest": "/public/robots.txt"
         },
         {
             "src": "/(.*)",
             "dest": "/api/index.php"
-        },
-        {
-            "src": "/images.(.*)",
-            "dest": "/public/apple-touch-icon.png"
-        },
-        {
-            "src": "/images.(.*)",
-            "dest": "/public/favicon.png"
-        },
-        {
-            "src": "/images.(.*)",
-            "dest": "/public/logo.png"
         }
     ],
     "env": {
