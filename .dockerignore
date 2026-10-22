@@ -1,9 +1,0 @@
-
-.env
-.env.*
-!.env.example
-/node_modules
-/vendor
-/.git
-/public/hot
-/storage/*.key
