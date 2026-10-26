@@ -745,8 +745,8 @@ const expenseDialog = document.getElementById('expense-dialog');
 const expenseConfirmDialog = document.getElementById('expense-confirm-dialog');
 const deleteExpenseDialog = document.getElementById('delete-expense-dialog');
 
-if (expenseDialog && expenseConfirmDialog && deleteExpenseDialog) {
-    [expenseDialog, expenseConfirmDialog, deleteExpenseDialog].forEach(wireDialog);
+if (expenseDialog && expenseConfirmDialog) {
+    [expenseDialog, expenseConfirmDialog, deleteExpenseDialog].filter(Boolean).forEach(wireDialog);
 
     const peso = (value) => '₱' + Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -792,7 +792,7 @@ if (expenseDialog && expenseConfirmDialog && deleteExpenseDialog) {
         amountField.focus();
     };
 
-    document.querySelectorAll('[data-expense-add-open]').forEach((button) => {
+    document.querySelectorAll('[data-expense-add-open], [data-add-expense]').forEach((button) => {
         button.addEventListener('click', () => openAdd());
     });
 
@@ -824,22 +824,24 @@ if (expenseDialog && expenseConfirmDialog && deleteExpenseDialog) {
     });
 
     // Delete with confirmation
-    const deleteForm = deleteExpenseDialog.querySelector('[data-delete-expense-form]');
+    if (deleteExpenseDialog) {
+        const deleteForm = deleteExpenseDialog.querySelector('[data-delete-expense-form]');
 
-    document.querySelectorAll('[data-expense-delete]').forEach((button) => {
-        button.addEventListener('click', () => {
-            const { url, amount, description, date } = button.dataset;
-            deleteForm.action = url;
-            deleteExpenseDialog.querySelector('[data-delete-expense-amount]').textContent = '₱' + amount;
-            deleteExpenseDialog.querySelector('[data-delete-expense-description]').textContent = description;
-            deleteExpenseDialog.querySelector('[data-delete-expense-date]').textContent = date;
-            deleteExpenseDialog.showModal();
+        document.querySelectorAll('[data-expense-delete]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const { url, amount, description, date } = button.dataset;
+                deleteForm.action = url;
+                deleteExpenseDialog.querySelector('[data-delete-expense-amount]').textContent = '₱' + amount;
+                deleteExpenseDialog.querySelector('[data-delete-expense-description]').textContent = description;
+                deleteExpenseDialog.querySelector('[data-delete-expense-date]').textContent = date;
+                deleteExpenseDialog.showModal();
+            });
         });
-    });
 
-    deleteForm.addEventListener('submit', () => {
-        deleteForm.querySelector('button[type="submit"]').disabled = true;
-    });
+        deleteForm.addEventListener('submit', () => {
+            deleteForm.querySelector('button[type="submit"]').disabled = true;
+        });
+    }
 
     // A back/forward trip must not leave anything disabled or half-confirmed
     window.addEventListener('pageshow', (event) => {
@@ -847,7 +849,9 @@ if (expenseDialog && expenseConfirmDialog && deleteExpenseDialog) {
         delete form.dataset.confirmed;
         submit.disabled = false;
         confirmButton.disabled = false;
-        deleteForm.querySelector('button[type="submit"]').disabled = false;
+        if (deleteExpenseDialog) {
+            deleteExpenseDialog.querySelector('[data-delete-expense-form] button[type="submit"]').disabled = false;
+        }
     });
 
     // The server sent us back with validation errors: reopen with what was entered

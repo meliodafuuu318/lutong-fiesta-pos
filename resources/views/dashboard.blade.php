@@ -400,4 +400,73 @@
         </div>
     </form>
 </dialog>
+
+{{-- Add expense --}}
+<dialog
+    id="expense-dialog"
+    aria-labelledby="expense-dialog-title"
+    data-reopen="{{ $errors->expenseForm->any() ? '1' : '' }}"
+    data-old-expense-id=""
+    data-old-amount="{{ old('amount') }}"
+    data-old-description="{{ old('description') }}"
+    data-today="{{ now()->format('M j, Y') }}"
+    class="m-auto max-h-[calc(100dvh-2rem)] w-[min(28rem,calc(100%-2rem))] overflow-y-auto rounded-2xl border-2 border-cream-200 bg-cream-50 p-0 text-ink shadow-2xl backdrop:bg-ink/50"
+>
+    <div class="flex items-start justify-between gap-4 border-b-2 border-cream-200 px-5 py-4">
+        <div>
+            <h2 id="expense-dialog-title" data-form-title class="font-display text-2xl font-bold leading-tight text-teal-900">Add Expense</h2>
+            <p data-form-subtitle class="mt-0.5 text-sm font-semibold text-ink-soft">Recorded for today, {{ now()->format('M j, Y') }}</p>
+        </div>
+        <button type="button" data-dialog-close aria-label="Close" class="-mr-2 flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg text-ink hover:bg-cream-100">
+            <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+    </div>
+
+    <form method="POST" action="{{ route('expenses.store') }}" data-expense-form data-store-url="{{ route('expenses.store') }}" class="px-5 py-5" novalidate>
+        @csrf
+        <input type="hidden" name="_method" value="PUT" disabled>
+        <input type="hidden" name="expense_id" value="">
+
+        <div class="space-y-5">
+            <div>
+                <label for="dashboard-expense-amount" class="block text-sm font-bold">Amount</label>
+                <div class="relative mt-1.5">
+                    <span class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-lg font-bold text-ink-soft">₱</span>
+                    <input id="dashboard-expense-amount" name="amount" type="number" inputmode="decimal" step="0.01" min="0.01" required class="w-full rounded-lg border-2 border-cream-200 bg-white py-3 pl-10 pr-4 text-lg font-bold text-ink focus:border-teal-500">
+                </div>
+                @error('amount', 'expenseForm')
+                    <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
+                @enderror
+            </div>
+            <div>
+                <label for="dashboard-expense-description" class="block text-sm font-bold">Description</label>
+                <input id="dashboard-expense-description" name="description" type="text" maxlength="255" required autocomplete="off" placeholder="What was it for?" class="mt-1.5 w-full rounded-lg border-2 border-cream-200 bg-white px-4 py-3 text-base font-semibold text-ink focus:border-teal-500">
+                @error('description', 'expenseForm')
+                    <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
+                @enderror
+            </div>
+        </div>
+
+        <div class="mt-6 grid grid-cols-2 gap-2">
+            <button type="button" data-dialog-close class="cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-4 py-3 font-bold hover:border-teal-500">Cancel</button>
+            <button type="submit" data-form-submit class="cursor-pointer rounded-lg bg-amber-500 px-4 py-3 font-display text-lg font-bold leading-snug text-ink shadow-[0_4px_0_0_var(--color-amber-600)] transition hover:bg-amber-400 disabled:cursor-wait disabled:opacity-60 disabled:shadow-none">Save Expense</button>
+        </div>
+    </form>
+</dialog>
+
+<dialog
+    id="expense-confirm-dialog"
+    aria-labelledby="expense-confirm-title"
+    class="m-auto w-[min(24rem,calc(100%-2rem))] rounded-2xl border-2 border-cream-200 bg-cream-50 p-0 text-ink shadow-2xl backdrop:bg-ink/50"
+>
+    <div class="p-5">
+        <h2 id="expense-confirm-title" data-confirm-title class="font-display text-2xl font-bold leading-tight text-teal-900">Add Expense?</h2>
+        <p class="mt-2 text-ink-soft"><span data-confirm-verb>Record</span> <strong class="text-ink" data-confirm-amount></strong> for <strong class="break-words text-ink" data-confirm-description></strong>?</p>
+        <div class="mt-5 grid grid-cols-2 gap-2">
+            <button type="button" data-dialog-close class="cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-4 py-2.5 font-bold hover:border-teal-500">Cancel</button>
+            <button type="button" data-expense-confirm class="cursor-pointer rounded-lg bg-amber-500 px-4 py-2.5 font-bold text-ink hover:bg-amber-400 disabled:cursor-wait disabled:opacity-60">Confirm</button>
+        </div>
+    </div>
+</dialog>
+
 @endsection
