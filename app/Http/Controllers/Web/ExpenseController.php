@@ -52,7 +52,7 @@ class ExpenseController extends Controller
         // Expenses are always recorded for today.
         $expense = Expense::create([...$request->validated(), 'expense_date' => today()->toDateString()]);
 
-        return redirect()->route('expenses.index')
+        return redirect()->to(url()->previous(route('expenses.index')))
             ->with('status', 'Expense of ₱' . number_format((float) $expense->amount, 2) . ' added.');
     }
 
