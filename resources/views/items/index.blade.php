@@ -5,7 +5,7 @@
 @section('main')
 <div class="w-full">
     <div class="flex flex-wrap items-center justify-between gap-3">
-        <h1 class="font-display text-3xl font-bold text-teal-900">Items</h1>
+        <h1 class="font-display text-2xl font-bold text-teal-900 sm:text-3xl">Items</h1>
         <button
             type="button"
             data-item-add-open
@@ -14,8 +14,8 @@
     </div>
 
     <form method="GET" action="{{ route('items.index') }}" class="mt-6 rounded-xl border-2 border-cream-200 bg-cream-50 p-4">
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
-            <div class="lg:col-span-2">
+        <div class="grid grid-cols-2 gap-3 lg:grid-cols-6">
+            <div class="col-span-2">
                 <label for="items-search" class="block text-xs font-bold uppercase tracking-wide text-ink-soft">Search</label>
                 <input
                     id="items-search"
@@ -60,9 +60,9 @@
                 </select>
             </div>
         </div>
-        <div class="mt-3 flex flex-wrap items-center justify-end gap-2">
-            <a href="{{ route('items.index') }}" class="cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-4 py-2 text-sm font-bold hover:border-teal-500">Reset</a>
-            <button type="submit" class="cursor-pointer rounded-lg bg-teal-700 px-4 py-2 text-sm font-bold text-cream-50 hover:bg-teal-600">Apply</button>
+        <div class="mt-3 grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end">
+            <a href="{{ route('items.index') }}" class="cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-4 py-2.5 text-center text-sm font-bold hover:border-teal-500 sm:py-2">Reset</a>
+            <button type="submit" class="cursor-pointer rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-bold text-cream-50 hover:bg-teal-600 sm:py-2">Apply</button>
         </div>
     </form>
 
@@ -72,11 +72,11 @@
             No items found.
         </p>
     @else
-        <div class="mt-6 rounded-xl border-2 border-cream-200 bg-cream-50">
+        <div class="mt-6 rounded-xl border-2 border-cream-200 bg-cream-50 max-lg:border-0 max-lg:bg-transparent">
             <div class="overflow-x-auto">
-                <table class="w-full table-auto min-w-[84rem] text-center">
+                <table class="w-full table-auto text-center max-lg:block lg:min-w-[44rem]">
                     <caption class="sr-only">Items</caption>
-                    <thead class="bg-cream-100 text-xs font-bold uppercase tracking-wide text-ink-soft sm:text-sm">
+                    <thead class="bg-cream-100 max-lg:hidden text-xs font-bold uppercase tracking-wide text-ink-soft sm:text-sm">
                         <tr>
                             <th scope="col" class="px-6 py-3">Item</th>
                             <th scope="col" class="px-6 py-3">Category</th>
@@ -86,13 +86,13 @@
                             <th scope="col" class="px-6 py-3"><span class="sr-only">Delete</span></th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="max-lg:block max-lg:space-y-3">
                         @foreach ($itemsList as $item)
-                            <tr class="border-t-2 border-cream-200 hover:bg-cream-100/60">
-                                <th scope="row" class="px-6 py-3 text-center font-bold text-ink">{{ $item->name }}</th>
-                                <td class="px-6 py-3 font-semibold text-ink">{{ $item->category?->name ?? '—' }}</td>
-                                <td class="whitespace-nowrap px-6 py-3 font-bold text-teal-700">₱{{ number_format($item->default_price, 2) }}</td>
-                                <td class="px-6 py-3">
+                            <tr class="border-t-2 border-cream-200 hover:bg-cream-100/60 max-lg:grid max-lg:grid-cols-2 max-lg:gap-x-2 max-lg:rounded-xl max-lg:border-2 max-lg:bg-cream-50 max-lg:p-4">
+                                <th scope="row" class="px-6 py-3 text-center font-bold text-ink max-lg:col-span-2 max-lg:block max-lg:p-0 max-lg:pb-2 max-lg:text-left max-lg:font-display max-lg:text-lg">{{ $item->name }}</th>
+                                <td data-label="Category" class="px-6 py-3 font-semibold text-ink max-lg:col-span-2 max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-3 max-lg:border-t max-lg:border-cream-200 max-lg:px-0 max-lg:py-2 max-lg:before:text-xs max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wide max-lg:before:text-ink-soft max-lg:before:content-[attr(data-label)]">{{ $item->category?->name ?? '—' }}</td>
+                                <td data-label="Default Price" class="whitespace-nowrap px-6 py-3 font-bold text-teal-700 max-lg:col-span-2 max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-3 max-lg:border-t max-lg:border-cream-200 max-lg:px-0 max-lg:py-2 max-lg:before:text-xs max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wide max-lg:before:text-ink-soft max-lg:before:content-[attr(data-label)]">₱{{ number_format($item->default_price, 2) }}</td>
+                                <td data-label="Status" class="px-6 py-3 max-lg:col-span-2 max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-3 max-lg:border-t max-lg:border-cream-200 max-lg:px-0 max-lg:py-2 max-lg:before:text-xs max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wide max-lg:before:text-ink-soft max-lg:before:content-[attr(data-label)]">
                                     <button
                                         type="button"
                                         role="switch"
@@ -106,7 +106,7 @@
                                         <span class="absolute left-1 size-5 rounded-full bg-white shadow transition-transform group-aria-checked:translate-x-5"></span>
                                     </button>
                                 </td>
-                                <td class="px-6 py-3">
+                                <td class="px-6 py-3 max-lg:border-t max-lg:border-cream-200 max-lg:px-0 max-lg:pb-0 max-lg:pt-3">
                                     <button
                                         type="button"
                                         data-item-edit
@@ -116,22 +116,23 @@
                                         data-price="{{ $item->default_price }}"
                                         data-category="{{ $item->category_id }}"
                                         aria-label="Edit {{ $item->name }}"
-                                        class="inline-flex size-10 cursor-pointer items-center justify-center rounded-lg text-ink-soft hover:bg-teal-100 hover:text-teal-700"
+                                        class="inline-flex size-10 cursor-pointer items-center justify-center gap-2 rounded-lg text-ink-soft hover:bg-teal-100 hover:text-teal-700 max-lg:h-11 max-lg:w-full max-lg:border-2 max-lg:border-cream-200 max-lg:bg-white max-lg:font-bold max-lg:text-ink"
                                     >
                                         <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                             <path d="M12 20h9"/>
                                             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>
                                         </svg>
+                                        <span class="lg:hidden" aria-hidden="true">Edit</span>
                                     </button>
                                 </td>
-                                <td class="px-6 py-3">
+                                <td class="px-6 py-3 max-lg:border-t max-lg:border-cream-200 max-lg:px-0 max-lg:pb-0 max-lg:pt-3">
                                     <button
                                         type="button"
                                         data-item-delete
                                         data-url="{{ route('items.destroy', $item) }}"
                                         data-name="{{ $item->name }}"
                                         aria-label="Delete {{ $item->name }}"
-                                        class="inline-flex size-10 cursor-pointer items-center justify-center rounded-lg text-ink-soft hover:bg-danger/10 hover:text-danger"
+                                        class="inline-flex size-10 cursor-pointer items-center justify-center gap-2 rounded-lg text-ink-soft hover:bg-danger/10 hover:text-danger max-lg:h-11 max-lg:w-full max-lg:border-2 max-lg:border-danger/40 max-lg:bg-white max-lg:font-bold max-lg:text-danger"
                                     >
                                         <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                             <path d="M3 6h18"/>
@@ -139,6 +140,7 @@
                                             <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
                                             <path d="M10 11v6M14 11v6"/>
                                         </svg>
+                                        <span class="lg:hidden" aria-hidden="true">Delete</span>
                                     </button>
                                 </td>
                             </tr>

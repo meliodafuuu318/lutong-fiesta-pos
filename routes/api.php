@@ -6,7 +6,8 @@ use App\Http\Controllers\{
     AuthController,
     ItemController,
     DailyItemController,
-    TransactionController
+    TransactionController,
+    DashboardController
 };
 
 Route::name('api.')->group(function () {
@@ -14,6 +15,8 @@ Route::name('api.')->group(function () {
 
     Route::group(['middleware' => 'auth:sanctum'], function () {
         Route::post('auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
+
+        Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
 
         Route::apiResource('items', ItemController::class);
 

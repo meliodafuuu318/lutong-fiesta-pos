@@ -5,7 +5,7 @@
 @section('main')
 <div class="pb-28">
     <div class="flex flex-wrap items-baseline justify-between gap-x-4">
-        <h1 class="font-display text-3xl font-bold text-teal-900">Today's Menu</h1>
+        <h1 class="font-display text-2xl font-bold text-teal-900 sm:text-3xl">Today's Menu</h1>
         <p class="font-semibold text-ink-soft">{{ now()->format('l, F j, Y') }}</p>
     </div>
 

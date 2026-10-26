@@ -30,7 +30,7 @@
         </div>
 
         <div class="flex min-w-0 items-center gap-3">
-            <span class="truncate text-sm font-bold sm:text-base" title="{{ auth()->user()->username }}">{{ auth()->user()->username }}</span>
+            <span class="hidden truncate text-sm font-bold sm:inline sm:text-base" title="{{ auth()->user()->username }}">{{ auth()->user()->username }}</span>
 
             <form method="POST" action="{{ route('logout') }}">
                 @csrf

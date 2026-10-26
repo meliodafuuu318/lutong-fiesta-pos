@@ -10,7 +10,7 @@
                 <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
         </a>
-        <h1 class="font-display text-3xl font-bold text-teal-900">Transaction Details</h1>
+        <h1 class="font-display text-2xl font-bold text-teal-900 sm:text-3xl">Transaction Details</h1>
     </div>
 
     <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-start">

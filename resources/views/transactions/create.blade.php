@@ -16,7 +16,7 @@
                 <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
         </a>
-        <h1 class="font-display text-3xl font-bold text-teal-900">Create Transaction</h1>
+        <h1 class="font-display text-2xl font-bold text-teal-900 sm:text-3xl">Create Transaction</h1>
     </div>
 
     @if ($bag->has('transaction'))
@@ -112,13 +112,13 @@
                                                             <p class="mt-0.5 font-bold text-teal-700">₱{{ number_format($dailyItem->price, 2) }}</p>
                                                         </div>
                                                         <div class="flex items-center justify-between gap-2">
-                                                            <button type="button" data-qty-minus aria-label="Decrease quantity of {{ $dailyItem->item->name }}" class="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border-2 border-cream-200 bg-white text-xl font-bold leading-none hover:border-teal-500">−</button>
+                                                            <button type="button" data-qty-minus aria-label="Decrease quantity of {{ $dailyItem->item->name }}" class="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg border-2 border-cream-200 bg-white text-xl font-bold leading-none hover:border-teal-500">−</button>
                                                             <input
                                                                 type="number" data-qty inputmode="numeric" min="0" max="99" value="0"
                                                                 aria-label="Quantity of {{ $dailyItem->item->name }}"
-                                                                class="w-full min-w-0 rounded-lg border-2 border-cream-200 bg-white py-1.5 text-center font-bold text-ink [appearance:textfield] focus:border-teal-500 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                                                class="w-full min-w-0 rounded-lg border-2 border-cream-200 bg-white py-2 text-center font-bold text-ink [appearance:textfield] focus:border-teal-500 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                                             >
-                                                            <button type="button" data-qty-plus aria-label="Increase quantity of {{ $dailyItem->item->name }}" class="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border-2 border-cream-200 bg-white text-xl font-bold leading-none hover:border-teal-500">+</button>
+                                                            <button type="button" data-qty-plus aria-label="Increase quantity of {{ $dailyItem->item->name }}" class="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg border-2 border-cream-200 bg-white text-xl font-bold leading-none hover:border-teal-500">+</button>
                                                         </div>
                                                         {{-- Only sent while the quantity is above zero --}}
                                                         <input type="hidden" name="transaction_items[{{ $dailyItem->id }}][daily_item_id]" value="{{ $dailyItem->id }}" disabled>
