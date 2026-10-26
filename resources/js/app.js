@@ -139,6 +139,40 @@ if (itemDialog && confirmDialog) {
 
     itemDialog.querySelector('[data-confirm-open]').addEventListener('click', () => confirmDialog.showModal());
 
+    // Saving changes asks for confirmation first
+    const updateConfirmDialog = document.getElementById('update-confirm-dialog');
+
+    if (updateConfirmDialog) {
+        wireDialog(updateConfirmDialog);
+
+        const updateConfirmButton = updateConfirmDialog.querySelector('[data-update-confirm]');
+
+        updateForm.addEventListener('submit', (event) => {
+            if (updateForm.dataset.confirmed) return;
+
+            event.preventDefault();
+            if (!updateForm.reportValidity()) return;
+
+            const status = statusRadios.find((radio) => radio.checked)?.value;
+            updateConfirmDialog.querySelector('[data-update-confirm-name]').textContent = itemDialog.querySelector('[data-dialog-name]').textContent;
+            updateConfirmDialog.querySelector('[data-update-confirm-price]').textContent = '₱' + Number(priceInput.value).toFixed(2);
+            updateConfirmDialog.querySelector('[data-update-confirm-status]').textContent = status === 'SOLD OUT' ? 'sold out' : 'available';
+            updateConfirmDialog.showModal();
+        });
+
+        updateConfirmButton.addEventListener('click', () => {
+            updateConfirmButton.disabled = true;
+            updateForm.dataset.confirmed = '1';
+            updateForm.requestSubmit();
+        });
+
+        window.addEventListener('pageshow', (event) => {
+            if (!event.persisted) return;
+            delete updateForm.dataset.confirmed;
+            updateConfirmButton.disabled = false;
+        });
+    }
+
     [itemDialog, confirmDialog].forEach(wireDialog);
 
     // The server sent us back with validation errors: reopen the same item
@@ -627,6 +661,42 @@ if (pendingRoot) {
             amountInput.focus();
         });
 
+        // Recording asks for confirmation first
+        const paymentConfirmDialog = document.getElementById('payment-confirm-dialog');
+        const paymentSubmit = form.querySelector('button[type="submit"]');
+        const paymentConfirmButton = paymentConfirmDialog.querySelector('[data-payment-confirm]');
+
+        wireDialog(paymentConfirmDialog);
+
+        form.addEventListener('submit', (event) => {
+            if (form.dataset.confirmed) {
+                paymentSubmit.disabled = true;
+                return;
+            }
+
+            event.preventDefault();
+            if (!form.reportValidity()) return;
+
+            paymentConfirmDialog.querySelector('[data-payment-confirm-amount]').textContent = peso(toCents(amountInput.value));
+            paymentConfirmDialog.querySelector('[data-payment-confirm-method]').textContent = methodSelect.selectedOptions[0].textContent;
+            paymentConfirmDialog.querySelector('[data-payment-confirm-reference]').textContent = paymentDialog.querySelector('[data-payment-reference]').textContent;
+            paymentConfirmDialog.querySelector('[data-payment-confirm-note]').textContent = hint.textContent;
+            paymentConfirmDialog.showModal();
+        });
+
+        paymentConfirmButton.addEventListener('click', () => {
+            paymentConfirmButton.disabled = true;
+            form.dataset.confirmed = '1';
+            form.requestSubmit();
+        });
+
+        window.addEventListener('pageshow', (event) => {
+            if (!event.persisted) return;
+            delete form.dataset.confirmed;
+            paymentSubmit.disabled = false;
+            paymentConfirmButton.disabled = false;
+        });
+
         // Back with errors: open the same order again with what was typed
         if (paymentDialog.dataset.reopen) {
             const button = pendingRoot.querySelector(`[data-pending-pay][data-id="${paymentDialog.dataset.oldTransaction}"]`);
@@ -655,8 +725,9 @@ if (pendingRoot) {
         });
     }
 
-    // One submit per click, and a back/forward trip must not leave the buttons disabled
-    const submitButtons = [paymentDialog, deliverDialog]
+    // Mark delivered: one submit per click, and a back/forward trip must not leave the button disabled
+    // (the payment form does the same after its confirmation, above)
+    const submitButtons = [deliverDialog]
         .filter(Boolean)
         .map((dialog) => {
             const submit = dialog.querySelector('button[type="submit"]');
@@ -667,4 +738,125 @@ if (pendingRoot) {
     window.addEventListener('pageshow', (event) => {
         if (event.persisted) submitButtons.forEach((button) => { button.disabled = false; });
     });
+}
+
+// Expenses page: add / edit expense (one modal, two modes), with confirmations
+const expenseDialog = document.getElementById('expense-dialog');
+const expenseConfirmDialog = document.getElementById('expense-confirm-dialog');
+const deleteExpenseDialog = document.getElementById('delete-expense-dialog');
+
+if (expenseDialog && expenseConfirmDialog && deleteExpenseDialog) {
+    [expenseDialog, expenseConfirmDialog, deleteExpenseDialog].forEach(wireDialog);
+
+    const peso = (value) => '₱' + Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const form = expenseDialog.querySelector('[data-expense-form]');
+    const amountField = form.elements.amount;
+    const descriptionField = form.elements.description;
+    const methodField = form.elements._method;
+    const idField = form.elements.expense_id;
+    const submit = form.querySelector('[data-form-submit]');
+    const confirmButton = expenseConfirmDialog.querySelector('[data-expense-confirm]');
+    let editing = false;
+
+    const setMode = (mode, date = '') => {
+        editing = mode === 'edit';
+        expenseDialog.querySelector('[data-form-title]').textContent = editing ? 'Edit Expense' : 'Add Expense';
+        expenseDialog.querySelector('[data-form-subtitle]').textContent = editing
+            ? `Recorded on ${date}`
+            : `Recorded for today, ${expenseDialog.dataset.today}`;
+        submit.textContent = editing ? 'Save Changes' : 'Save Expense';
+        methodField.disabled = !editing;
+        if (!editing) {
+            form.action = form.dataset.storeUrl;
+            idField.value = '';
+        }
+    };
+
+    const openAdd = (old = {}) => {
+        setMode('add');
+        amountField.value = old.amount ?? '';
+        descriptionField.value = old.description ?? '';
+        expenseDialog.showModal();
+        amountField.focus();
+    };
+
+    const openEdit = (button, old = {}) => {
+        const { id, url, amount, description, date } = button.dataset;
+        setMode('edit', date);
+        form.action = url;
+        idField.value = id;
+        amountField.value = old.amount ?? amount;
+        descriptionField.value = old.description ?? description;
+        expenseDialog.showModal();
+        amountField.focus();
+    };
+
+    document.querySelectorAll('[data-expense-add-open]').forEach((button) => {
+        button.addEventListener('click', () => openAdd());
+    });
+
+    document.querySelectorAll('[data-expense-edit]').forEach((button) => {
+        button.addEventListener('click', () => openEdit(button));
+    });
+
+    // Saving asks for confirmation first
+    form.addEventListener('submit', (event) => {
+        if (form.dataset.confirmed) {
+            submit.disabled = true;
+            return;
+        }
+
+        event.preventDefault();
+        if (!form.reportValidity()) return;
+
+        expenseConfirmDialog.querySelector('[data-confirm-title]').textContent = editing ? 'Save Changes?' : 'Add Expense?';
+        expenseConfirmDialog.querySelector('[data-confirm-verb]').textContent = editing ? 'This expense will be changed to' : 'Record';
+        expenseConfirmDialog.querySelector('[data-confirm-amount]').textContent = peso(amountField.value);
+        expenseConfirmDialog.querySelector('[data-confirm-description]').textContent = descriptionField.value.trim();
+        expenseConfirmDialog.showModal();
+    });
+
+    confirmButton.addEventListener('click', () => {
+        confirmButton.disabled = true;
+        form.dataset.confirmed = '1';
+        form.requestSubmit();
+    });
+
+    // Delete with confirmation
+    const deleteForm = deleteExpenseDialog.querySelector('[data-delete-expense-form]');
+
+    document.querySelectorAll('[data-expense-delete]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const { url, amount, description, date } = button.dataset;
+            deleteForm.action = url;
+            deleteExpenseDialog.querySelector('[data-delete-expense-amount]').textContent = '₱' + amount;
+            deleteExpenseDialog.querySelector('[data-delete-expense-description]').textContent = description;
+            deleteExpenseDialog.querySelector('[data-delete-expense-date]').textContent = date;
+            deleteExpenseDialog.showModal();
+        });
+    });
+
+    deleteForm.addEventListener('submit', () => {
+        deleteForm.querySelector('button[type="submit"]').disabled = true;
+    });
+
+    // A back/forward trip must not leave anything disabled or half-confirmed
+    window.addEventListener('pageshow', (event) => {
+        if (!event.persisted) return;
+        delete form.dataset.confirmed;
+        submit.disabled = false;
+        confirmButton.disabled = false;
+        deleteForm.querySelector('button[type="submit"]').disabled = false;
+    });
+
+    // The server sent us back with validation errors: reopen with what was entered
+    if (expenseDialog.dataset.reopen) {
+        const { oldExpenseId, oldAmount, oldDescription } = expenseDialog.dataset;
+        const editButton = oldExpenseId && document.querySelector(`[data-expense-edit][data-id="${oldExpenseId}"]`);
+        const old = { amount: oldAmount, description: oldDescription };
+
+        if (editButton) openEdit(editButton, old);
+        else openAdd(old);
+    }
 }

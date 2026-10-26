@@ -337,7 +337,7 @@
                 <div class="relative min-w-0 flex-1">
                     <span class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-lg font-bold text-ink-soft">₱</span>
                     <input
-                        id="payment-amount" name="payment_amount" type="number" inputmode="decimal" step="0.01" min="0" required
+                        id="payment-amount" name="payment_amount" type="number" inputmode="decimal" step="0.01" min="0.01" required
                         @class([
                             'w-full rounded-lg border-2 bg-white py-3 pl-10 pr-4 text-lg font-bold text-ink',
                             'border-cream-200 focus:border-teal-500' => ! $errors->addPayment->has('payment_amount'),
@@ -358,6 +358,28 @@
             <button type="submit" class="cursor-pointer rounded-lg bg-amber-500 px-4 py-3 font-display text-lg font-bold leading-snug text-ink shadow-[0_4px_0_0_var(--color-amber-600)] transition hover:bg-amber-400 active:translate-y-[2px] active:shadow-[0_2px_0_0_var(--color-amber-600)] disabled:cursor-wait disabled:opacity-60 disabled:shadow-none">Record</button>
         </div>
     </form>
+</dialog>
+
+{{-- Record payment confirmation --}}
+<dialog
+    id="payment-confirm-dialog"
+    aria-labelledby="payment-confirm-title"
+    class="m-auto w-[min(24rem,calc(100%-2rem))] rounded-2xl border-2 border-cream-200 bg-cream-50 p-0 text-ink shadow-2xl backdrop:bg-ink/50"
+>
+    <div class="p-5">
+        <h2 id="payment-confirm-title" class="font-display text-2xl font-bold leading-tight text-teal-900">Record this payment?</h2>
+        <p class="mt-2 text-ink-soft">
+            <strong class="text-ink" data-payment-confirm-amount></strong> by
+            <strong class="text-ink" data-payment-confirm-method></strong> for
+            <strong class="font-mono text-ink" data-payment-confirm-reference></strong>.
+        </p>
+        <p class="mt-1 text-sm font-semibold text-ink-soft" data-payment-confirm-note></p>
+        <p class="mt-3 text-sm text-ink-soft">A recorded payment can't be edited or removed.</p>
+        <div class="mt-5 grid grid-cols-2 gap-2">
+            <button type="button" data-dialog-close class="cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-4 py-2.5 font-bold hover:border-teal-500">Cancel</button>
+            <button type="button" data-payment-confirm class="cursor-pointer rounded-lg bg-amber-500 px-4 py-2.5 font-bold text-ink hover:bg-amber-400 disabled:cursor-wait disabled:opacity-60">Record Payment</button>
+        </div>
+    </div>
 </dialog>
 
 {{-- Mark delivered --}}

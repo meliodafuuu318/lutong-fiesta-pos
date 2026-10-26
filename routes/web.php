@@ -3,6 +3,7 @@
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\DailyItemController;
 use App\Http\Controllers\Web\DashboardController;
+use App\Http\Controllers\Web\ExpenseController;
 use App\Http\Controllers\Web\ItemController;
 use App\Http\Controllers\Web\MenuController;
 use App\Http\Controllers\Web\TransactionController;
@@ -33,6 +34,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/transactions/{transaction}', [TransactionController::class, 'show'])->name('transactions.show');
     Route::post('/transactions/{transaction}/payments', [TransactionController::class, 'addPayment'])->name('transactions.payments.store');
     Route::patch('/transactions/{transaction}/delivery', [TransactionController::class, 'markDelivered'])->name('transactions.deliver');
+    Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
+    Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.store');
+    Route::put('/expenses/{expense}', [ExpenseController::class, 'update'])->name('expenses.update');
+    Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy'])->name('expenses.destroy');
     Route::post('/daily-items', [DailyItemController::class, 'store'])->name('daily-items.store');
     Route::put('/daily-items/{dailyItem}', [DailyItemController::class, 'update'])->name('daily-items.update');
     Route::delete('/daily-items/{dailyItem}', [DailyItemController::class, 'destroy'])->name('daily-items.destroy');

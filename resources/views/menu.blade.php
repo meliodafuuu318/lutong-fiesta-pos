@@ -143,6 +143,22 @@
     </div>
 </dialog>
 
+{{-- Save changes confirmation --}}
+<dialog
+    id="update-confirm-dialog"
+    aria-labelledby="update-confirm-title"
+    class="m-auto w-[min(24rem,calc(100%-2rem))] rounded-2xl border-2 border-cream-200 bg-cream-50 p-0 text-ink shadow-2xl backdrop:bg-ink/50"
+>
+    <div class="p-5">
+        <h2 id="update-confirm-title" class="font-display text-2xl font-bold leading-tight text-teal-900">Save changes?</h2>
+        <p class="mt-2 text-ink-soft"><strong class="text-ink" data-update-confirm-name></strong> will be set to <strong class="text-ink" data-update-confirm-price></strong> and marked <strong class="text-ink" data-update-confirm-status></strong> on today's menu.</p>
+        <div class="mt-5 grid grid-cols-2 gap-2">
+            <button type="button" data-dialog-close class="cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-4 py-2.5 font-bold hover:border-teal-500">Cancel</button>
+            <button type="button" data-update-confirm class="cursor-pointer rounded-lg bg-amber-500 px-4 py-2.5 font-bold text-ink hover:bg-amber-400 disabled:cursor-wait disabled:opacity-60">Save Changes</button>
+        </div>
+    </div>
+</dialog>
+
 {{-- Remove confirmation --}}
 <dialog
     id="confirm-dialog"

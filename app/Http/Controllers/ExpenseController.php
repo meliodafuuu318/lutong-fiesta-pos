@@ -14,19 +14,26 @@ class ExpenseController extends Controller
     public function index(IndexExpenseRequest $request) {
         $expenses = Expense::query();
 
-        if ($request->has('date_from')) {
+        if ($request->filled('date_from')) {
             $expenses->whereDate('expense_date', '>=', $request->input('date_from'));
         }
-        if ($request->has('date_to')) {
+        if ($request->filled('date_to')) {
             $expenses->whereDate('expense_date', '<=', $request->input('date_to'));
         }
 
+        // The total covers the whole filtered range, not just the current page.
         $total = $expenses->sum('amount');
         $todayTotal = Expense::today()->sum('amount');
         $weeklyTotal = Expense::weekly()->sum('amount');
 
+        $paginated = $expenses
+            ->orderByDesc('expense_date')
+            ->orderByDesc('id')
+            ->paginate($request->input('per_page', 10));
+
         return $this->success('Expense data retrieved successfully.', [
-            'expenses' => $expenses->get(),
+            'expenses' => $paginated->items(),
+            'pagination' => $this->pagePaginationData($paginated),
             'total' => $total,
             'today_total' => $todayTotal,
             'weekly_total' => $weeklyTotal
@@ -34,7 +41,8 @@ class ExpenseController extends Controller
     }
 
     public function store(StoreExpenseRequest $request) {
-        $expense = Expense::create($request->validated());
+        // Expenses are always recorded for today; the date isn't something the client sets.
+        $expense = Expense::create([...$request->validated(), 'expense_date' => today()->toDateString()]);
 
         return $this->success('Expense created successfully.', $expense, 201);
     }
