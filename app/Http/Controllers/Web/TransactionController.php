@@ -152,7 +152,7 @@ class TransactionController extends Controller
             ->with('status', "{$transaction->reference_number} marked as delivered.");
     }
 
-    public function cancel(Transaction $transaction, TransactionService $transactions): RedirectResponse
+    public function cancel(Request $request, Transaction $transaction, TransactionService $transactions): RedirectResponse
     {
         try {
             $transactions->cancel($transaction);
@@ -161,11 +161,11 @@ class TransactionController extends Controller
                 ->withErrors(['transaction' => $e->getMessage()]);
         }
 
-        return redirect()->route('transactions.show', $transaction)
+        return redirect()->to($this->safeReturnUrl($request->input('return_to')))
             ->with('status', "{$transaction->reference_number} cancelled.");
     }
 
-    public function refund(Transaction $transaction, TransactionService $transactions): RedirectResponse
+    public function refund(Request $request, Transaction $transaction, TransactionService $transactions): RedirectResponse
     {
         try {
             $transactions->refund($transaction);
@@ -174,8 +174,17 @@ class TransactionController extends Controller
                 ->withErrors(['transaction' => $e->getMessage()]);
         }
 
-        return redirect()->route('transactions.show', $transaction)
+        return redirect()->to($this->safeReturnUrl($request->input('return_to')))
             ->with('status', "{$transaction->reference_number} returned/refunded.");
+    }
+
+    private function safeReturnUrl(mixed $returnTo): string
+    {
+        if (is_string($returnTo) && parse_url($returnTo, PHP_URL_HOST) === request()->getHost()) {
+            return $returnTo;
+        }
+
+        return route('transactions.index');
     }
 
     /** Both actions happen on the dashboard's pending orders tab. */

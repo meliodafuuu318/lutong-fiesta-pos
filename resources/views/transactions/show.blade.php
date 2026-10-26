@@ -152,6 +152,7 @@
         <form method="POST" action="{{ route('transactions.cancel', $transaction) }}" class="p-5" data-transaction-action-form>
             @csrf
             @method('PATCH')
+            <input type="hidden" name="return_to" value="{{ url()->previous(route('transactions.index')) }}">
             <h2 class="font-display text-2xl font-bold leading-tight text-teal-900">Cancel Transaction?</h2>
             <p class="mt-2 text-ink-soft">This will cancel <strong class="font-mono text-ink">{{ $transaction->reference_number }}</strong> and mark its payment and delivery as cancelled.</p>
             <div class="mt-5 grid grid-cols-2 gap-2">
@@ -165,6 +166,7 @@
         <form method="POST" action="{{ route('transactions.refund', $transaction) }}" class="p-5" data-transaction-action-form>
             @csrf
             @method('PATCH')
+            <input type="hidden" name="return_to" value="{{ url()->previous(route('transactions.index')) }}">
             <h2 class="font-display text-2xl font-bold leading-tight text-teal-900">Return / Refund?</h2>
             <p class="mt-2 text-ink-soft">This will mark <strong class="font-mono text-ink">{{ $transaction->reference_number }}</strong> as returned/refunded and update its payment and delivery statuses.</p>
             <div class="mt-5 grid grid-cols-2 gap-2">
