@@ -79,14 +79,15 @@ class Transaction extends Model
     }
 
     public function scopePendingDelivery($query) {
-        return $query->where('type', 'DELIVERY')
+        return $query->active()
+            ->where('type', 'DELIVERY')
             ->whereHas('delivery', function ($q) {
                 $q->where('status', 'PENDING');
             });
     }
 
     public function scopePendingPayment($query) {
-        return $query->where('payment_status', 'PENDING');
+        return $query->active()->where('payment_status', 'PENDING');
     }
 
     /** Everything except cancelled and refunded transactions. */
@@ -95,14 +96,14 @@ class Transaction extends Model
     }
 
     public function scopeToday($query) {
-        return $query->whereDate('transaction_date', now()->toDateString());
+        return $query->active()->whereDate('transaction_date', now()->toDateString());
     }
 
     public function scopeWeekly($query) {
-        return $query->whereBetween('transaction_date', [now()->startOfWeek(), now()->endOfWeek()]);
+        return $query->active()->whereBetween('transaction_date', [now()->startOfWeek(), now()->endOfWeek()]);
     }
 
     public function scopeMonthly($query) {
-        return $query->whereBetween('transaction_date', [now()->startOfMonth(), now()->endOfMonth()]);
+        return $query->active()->whereBetween('transaction_date', [now()->startOfMonth(), now()->endOfMonth()]);
     }
 }

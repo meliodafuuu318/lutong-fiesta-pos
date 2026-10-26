@@ -152,6 +152,32 @@ class TransactionController extends Controller
             ->with('status', "{$transaction->reference_number} marked as delivered.");
     }
 
+    public function cancel(Transaction $transaction, TransactionService $transactions): RedirectResponse
+    {
+        try {
+            $transactions->cancel($transaction);
+        } catch (TransactionException $e) {
+            return redirect()->route('transactions.show', $transaction)
+                ->withErrors(['transaction' => $e->getMessage()]);
+        }
+
+        return redirect()->route('transactions.show', $transaction)
+            ->with('status', "{$transaction->reference_number} cancelled.");
+    }
+
+    public function refund(Transaction $transaction, TransactionService $transactions): RedirectResponse
+    {
+        try {
+            $transactions->refund($transaction);
+        } catch (TransactionException $e) {
+            return redirect()->route('transactions.show', $transaction)
+                ->withErrors(['transaction' => $e->getMessage()]);
+        }
+
+        return redirect()->route('transactions.show', $transaction)
+            ->with('status', "{$transaction->reference_number} returned/refunded.");
+    }
+
     /** Both actions happen on the dashboard's pending orders tab. */
     private function backToPendingOrders(): RedirectResponse
     {

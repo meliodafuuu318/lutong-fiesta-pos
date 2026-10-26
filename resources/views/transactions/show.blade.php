@@ -3,6 +3,13 @@
 @section('title', 'Transaction Details · ' . config('app.name'))
 
 @section('main')
+@php
+    $deliveryCompleted = $transaction->type === 'DELIVERY'
+        ? $transaction->delivery?->status === 'DELIVERED'
+        : $transaction->status === 'COMPLETED';
+    $canCancel = ! $transaction->isVoid() && ! $deliveryCompleted;
+    $canRefund = ! $transaction->isVoid() && $deliveryCompleted;
+@endphp
 <div class="w-full">
     <div class="flex items-center gap-3">
         <a href="{{ route('transactions.index') }}" class="flex size-10 items-center justify-center rounded-lg text-ink-soft hover:bg-cream-100 hover:text-ink">
@@ -12,6 +19,16 @@
         </a>
         <h1 class="font-display text-2xl font-bold text-teal-900 sm:text-3xl">Transaction Details</h1>
     </div>
+
+    @if ($canCancel || $canRefund)
+        <div class="mt-4 flex justify-end">
+            @if ($canCancel)
+                <button type="button" data-transaction-cancel-open class="cursor-pointer rounded-lg border-2 border-danger px-4 py-2.5 font-bold text-danger hover:bg-danger hover:text-cream-50">Cancel Transaction</button>
+            @else
+                <button type="button" data-transaction-refund-open class="cursor-pointer rounded-lg border-2 border-danger px-4 py-2.5 font-bold text-danger hover:bg-danger hover:text-cream-50">Return / Refund</button>
+            @endif
+        </div>
+    @endif
 
     <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-start">
         <div class="min-w-0 space-y-6 lg:col-span-2">
@@ -36,6 +53,14 @@
                         <p class="text-xs font-bold uppercase tracking-wide text-ink-soft">Transaction Date</p>
                         <p class="mt-1 text-base font-semibold text-ink">{{ $transaction->transaction_date->format('M j, Y') }}</p>
                         <p class="text-sm font-semibold text-ink-soft">{{ $transaction->transaction_date->format('g:i A') }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-wide text-ink-soft">Transaction Status</p>
+                        <div class="mt-1"><x-status-badge :status="$transaction->status" /></div>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-wide text-ink-soft">Payment Status</p>
+                        <div class="mt-1"><x-status-badge :status="$transaction->payment_status" /></div>
                     </div>
                 </div>
             </section>
@@ -121,4 +146,32 @@
         </aside>
     </div>
 </div>
+
+@if ($canCancel)
+    <dialog id="transaction-cancel-dialog" class="m-auto w-[min(24rem,calc(100%-2rem))] rounded-2xl border-2 border-cream-200 bg-cream-50 p-0 text-ink shadow-2xl backdrop:bg-ink/50">
+        <form method="POST" action="{{ route('transactions.cancel', $transaction) }}" class="p-5" data-transaction-action-form>
+            @csrf
+            @method('PATCH')
+            <h2 class="font-display text-2xl font-bold leading-tight text-teal-900">Cancel Transaction?</h2>
+            <p class="mt-2 text-ink-soft">This will cancel <strong class="font-mono text-ink">{{ $transaction->reference_number }}</strong> and mark its payment and delivery as cancelled.</p>
+            <div class="mt-5 grid grid-cols-2 gap-2">
+                <button type="button" data-dialog-close class="cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-4 py-2.5 font-bold hover:border-teal-500">Keep</button>
+                <button type="submit" class="cursor-pointer rounded-lg bg-danger px-4 py-2.5 font-bold text-cream-50 hover:brightness-110">Cancel Transaction</button>
+            </div>
+        </form>
+    </dialog>
+@elseif ($canRefund)
+    <dialog id="transaction-refund-dialog" class="m-auto w-[min(24rem,calc(100%-2rem))] rounded-2xl border-2 border-cream-200 bg-cream-50 p-0 text-ink shadow-2xl backdrop:bg-ink/50">
+        <form method="POST" action="{{ route('transactions.refund', $transaction) }}" class="p-5" data-transaction-action-form>
+            @csrf
+            @method('PATCH')
+            <h2 class="font-display text-2xl font-bold leading-tight text-teal-900">Return / Refund?</h2>
+            <p class="mt-2 text-ink-soft">This will mark <strong class="font-mono text-ink">{{ $transaction->reference_number }}</strong> as returned/refunded and update its payment and delivery statuses.</p>
+            <div class="mt-5 grid grid-cols-2 gap-2">
+                <button type="button" data-dialog-close class="cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-4 py-2.5 font-bold hover:border-teal-500">Keep</button>
+                <button type="submit" class="cursor-pointer rounded-lg bg-danger px-4 py-2.5 font-bold text-cream-50 hover:brightness-110">Return / Refund</button>
+            </div>
+        </form>
+    </dialog>
+@endif
 @endsection

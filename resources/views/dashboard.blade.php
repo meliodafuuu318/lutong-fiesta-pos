@@ -83,7 +83,7 @@
                             data-pending-card
                             data-delivery="{{ $deliveryPending ? '1' : '0' }}"
                             data-payment="{{ $paymentPending ? '1' : '0' }}"
-                            class="flex flex-col rounded-xl border-2 border-t-4 border-cream-200 border-t-amber-500 bg-cream-50 p-4"
+                            class="flex cursor-pointer flex-col rounded-xl border-2 border-t-4 border-cream-200 border-t-amber-500 bg-cream-50 p-4 hover:bg-cream-100/60"
                         >
                             <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0">

@@ -594,6 +594,15 @@ if (pendingRoot) {
     const cards = [...pendingRoot.querySelectorAll('[data-pending-card]')];
     const filterEmpty = pendingRoot.querySelector('[data-pending-filter-empty]');
 
+    cards.forEach((card) => {
+        card.addEventListener('click', (event) => {
+            if (event.target.closest('a, button, input, select, textarea')) return;
+
+            const link = card.querySelector('a[href]');
+            if (link) window.location.href = link.href;
+        });
+    });
+
     const applyFilter = (kind) => {
         let shown = 0;
         chips.forEach((chip) => chip.setAttribute('aria-pressed', String(chip.dataset.pendingFilter === kind)));
@@ -864,3 +873,22 @@ if (expenseDialog && expenseConfirmDialog) {
         else openAdd(old);
     }
 }
+
+// Transaction details: destructive actions require confirmation.
+const transactionCancelDialog = document.getElementById('transaction-cancel-dialog');
+const transactionRefundDialog = document.getElementById('transaction-refund-dialog');
+
+[
+    [transactionCancelDialog, '[data-transaction-cancel-open]'],
+    [transactionRefundDialog, '[data-transaction-refund-open]'],
+].forEach(([dialog, openerSelector]) => {
+    if (!dialog) return;
+
+    wireDialog(dialog);
+    document.querySelector(openerSelector)?.addEventListener('click', () => dialog.showModal());
+
+    const form = dialog.querySelector('[data-transaction-action-form]');
+    form.addEventListener('submit', () => {
+        form.querySelector('button[type="submit"]').disabled = true;
+    });
+});

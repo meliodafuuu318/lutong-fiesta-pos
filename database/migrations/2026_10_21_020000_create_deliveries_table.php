@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('transaction_id')->unique()->constrained('transactions')->onDelete('cascade');
             $table->string('address', 500);
-            $table->enum('status', ['PENDING', 'DELIVERED', 'CANCELLED'])->default('PENDING');
+            $table->enum('status', ['PENDING', 'DELIVERED', 'CANCELLED', 'REFUNDED'])->default('PENDING');
             $table->timestamps();
         });
     }

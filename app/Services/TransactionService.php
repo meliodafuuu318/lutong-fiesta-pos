@@ -82,12 +82,7 @@ class TransactionService
                     'total_balance' => $totalBalance,
                 ]);
 
-                if ($outstandingBalance <= 0) {
-                    $transaction->update([
-                        'status' => 'COMPLETED',
-                        'payment_status' => 'PAID',
-                    ]);
-                }
+                $this->syncOverallStatus($transaction);
             }
 
             return $transaction;
@@ -131,12 +126,7 @@ class TransactionService
                 'total_balance' => $transaction->total,
             ]);
 
-            if ($outstandingBalance <= 0) {
-                $transaction->update([
-                    'status' => 'COMPLETED',
-                    'payment_status' => 'PAID',
-                ]);
-            }
+            $this->syncOverallStatus($transaction);
 
             return $payment;
         });
@@ -167,8 +157,61 @@ class TransactionService
             }
 
             $delivery->update(['status' => 'DELIVERED']);
+            $this->syncOverallStatus($transaction);
 
             return $delivery;
         });
+    }
+
+    public function cancel(Transaction $transaction): Transaction
+    {
+        return DB::transaction(function () use ($transaction) {
+            $transaction = Transaction::with('delivery')->lockForUpdate()->findOrFail($transaction->getKey());
+
+            if ($transaction->isVoid()) {
+                throw new TransactionException('This transaction is already cancelled or refunded.');
+            }
+
+            $transaction->update([
+                'status' => 'CANCELLED',
+                'payment_status' => 'CANCELLED',
+            ]);
+            $transaction->delivery?->update(['status' => 'CANCELLED']);
+
+            return $transaction->refresh();
+        });
+    }
+
+    public function refund(Transaction $transaction): Transaction
+    {
+        return DB::transaction(function () use ($transaction) {
+            $transaction = Transaction::with('delivery')->lockForUpdate()->findOrFail($transaction->getKey());
+
+            if ($transaction->isVoid()) {
+                throw new TransactionException('This transaction is already cancelled or refunded.');
+            }
+
+            $transaction->update([
+                'status' => 'REFUNDED',
+                'payment_status' => 'REFUNDED',
+            ]);
+            $transaction->delivery?->update(['status' => 'REFUNDED']);
+
+            return $transaction->refresh();
+        });
+    }
+
+    public function syncOverallStatus(Transaction $transaction): void
+    {
+        $transaction->refresh()->load('delivery');
+        $paymentComplete = $transaction->payment_status === 'PAID';
+        $deliveryComplete = $transaction->type !== 'DELIVERY'
+            || $transaction->delivery?->status === 'DELIVERED';
+
+        if ($paymentComplete && $deliveryComplete) {
+            $transaction->update(['status' => 'COMPLETED']);
+        } else {
+            $transaction->update(['status' => 'PENDING']);
+        }
     }
 }

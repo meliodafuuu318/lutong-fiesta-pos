@@ -111,7 +111,8 @@ class TransactionSeeder extends Seeder
                 'transaction_id' => $transaction->id,
                 'address' => Arr::random(self::ADDRESSES),
                 'status' => match ($status) {
-                    'COMPLETED', 'REFUNDED' => 'DELIVERED',
+                    'COMPLETED' => 'DELIVERED',
+                    'REFUNDED' => 'REFUNDED',
                     'CANCELLED' => 'CANCELLED',
                     default => 'PENDING',
                 },

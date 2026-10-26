@@ -34,6 +34,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/transactions/{transaction}', [TransactionController::class, 'show'])->name('transactions.show');
     Route::post('/transactions/{transaction}/payments', [TransactionController::class, 'addPayment'])->name('transactions.payments.store');
     Route::patch('/transactions/{transaction}/delivery', [TransactionController::class, 'markDelivered'])->name('transactions.deliver');
+    Route::patch('/transactions/{transaction}/cancel', [TransactionController::class, 'cancel'])->name('transactions.cancel');
+    Route::patch('/transactions/{transaction}/refund', [TransactionController::class, 'refund'])->name('transactions.refund');
     Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
     Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.store');
     Route::put('/expenses/{expense}', [ExpenseController::class, 'update'])->name('expenses.update');

@@ -62,7 +62,7 @@ class TransactionController extends Controller
         return $this->success('Transaction retrieved successfully', new TransactionResource($transaction), 200);
     }
 
-    public function update(UpdateTransactionRequest $request, Transaction $transaction) {
+    public function update(UpdateTransactionRequest $request, Transaction $transaction, TransactionService $transactions) {
         if ($transaction->status === 'CANCELLED' || $transaction->status === 'REFUNDED') {
             return $this->error('Cannot update a cancelled or refunded transaction', 400);
         }
@@ -116,6 +116,7 @@ class TransactionController extends Controller
                 }
             }
 
+            $transactions->syncOverallStatus($transaction);
             DB::commit();
 
             $transaction->refresh()->load('delivery');
@@ -127,35 +128,24 @@ class TransactionController extends Controller
         }
     }
 
-    public function cancelTransaction(Transaction $transaction) {
-        if ($transaction->status === 'CANCELLED' || $transaction->status === 'REFUNDED') {
-            return $this->error('Transaction is already cancelled or refunded', 400);
+    public function cancelTransaction(Transaction $transaction, TransactionService $transactions) {
+        try {
+            $transaction = $transactions->cancel($transaction);
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage(), 400);
         }
-
-        DB::transaction(function () use ($transaction) {
-            $transaction->update(['status' => 'CANCELLED', 'payment_status' => 'CANCELLED']);
-
-            // A delivery that hasn't happened yet is called off together with the order.
-            if ($transaction->delivery?->status === 'PENDING') {
-                $transaction->delivery->update(['status' => 'CANCELLED']);
-            }
-        });
 
         $transaction->load('delivery');
 
         return $this->success('Transaction cancelled successfully', new TransactionResource($transaction), 200);
     }
 
-    public function refundTransaction(Transaction $transaction) {
-        if ($transaction->status === 'REFUNDED' || $transaction->status === 'CANCELLED') {
-            return $this->error('Transaction is already refunded or cancelled', 400);
+    public function refundTransaction(Transaction $transaction, TransactionService $transactions) {
+        try {
+            $transaction = $transactions->refund($transaction);
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage(), 400);
         }
-
-        if (!$transaction->transactionPayments()->exists()) {
-            return $this->error('Cannot refund a transaction with no payments', 400);
-        }
-
-        $transaction->update(['status' => 'REFUNDED', 'payment_status' => 'REFUNDED']);
 
         return $this->success('Transaction refunded successfully', new TransactionResource($transaction), 200);
     }

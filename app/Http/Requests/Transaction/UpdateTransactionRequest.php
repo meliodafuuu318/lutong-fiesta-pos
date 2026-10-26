@@ -26,7 +26,7 @@ class UpdateTransactionRequest extends FormRequest
             'payment_method' => ['sometimes', 'nullable', 'in:CASH,GCASH,BANK TRANSFER'],
             'payment_amount' => ['sometimes', 'required_with:payment_method', 'numeric', 'min:0'],
             'address' => ['sometimes', 'nullable', 'string', 'max:500'],
-            'delivery_status' => ['sometimes', 'nullable', 'in:PENDING,DELIVERED,CANCELLED'],
+            'delivery_status' => ['sometimes', 'nullable', 'in:PENDING,DELIVERED,CANCELLED,REFUNDED'],
         ];
     }
 }
