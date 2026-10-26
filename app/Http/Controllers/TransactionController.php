@@ -16,6 +16,7 @@ use App\Http\Requests\Transaction\{
     IndexTransactionRequest
 };
 use App\Http\Resources\TransactionResource;
+use App\Services\TransactionService;
 use Illuminate\Support\Facades\DB;
 
 class TransactionController extends Controller
@@ -44,78 +45,16 @@ class TransactionController extends Controller
         return $this->success('Transactions retrieved successfully', TransactionResource::collection($transactions), 200);
     }
 
-    public function store(StoreTransactionRequest $request) {
-        DB::beginTransaction();
-
+    public function store(StoreTransactionRequest $request, TransactionService $transactions) {
         try {
-            $transaction = Transaction::create([
-                'reference_number' => $this->generateReferenceNumber(),
-                'total' => 0,
-                'type' => $request->type,
-                'status' => 'PENDING',
-                'payment_status' => 'PENDING',
-                'transaction_date' => now(),
-            ]);
-
-            $totalAmount = 0;
-
-            foreach ($request->input('transaction_items') as $item) {
-                $dailyItem = DailyItem::todayMenu()->available()->where('id', $item['daily_item_id'])->first();
-                if (!$dailyItem) {
-                    throw new \Exception('Daily item not available for item_id: ' . $item['daily_item_id']);
-                }
-
-                $amount = $dailyItem->price * $item['quantity'];
-                $totalAmount += $amount;
-
-                TransactionItem::create([
-                    'transaction_id' => $transaction->id,
-                    'daily_item_id' => $dailyItem->id,
-                    'unit_price' => $dailyItem->price,
-                    'quantity' => $item['quantity'],
-                    'subtotal' => $amount
-                ]);
-            }
-
-            $transaction->update(['total' => $totalAmount]);
-
-            if ($request->type === 'DELIVERY') {
-                Delivery::create([
-                    'transaction_id' => $transaction->id,
-                    'address' => $request->address,
-                    'status' => 'PENDING',
-                ]);
-            }
-
-            if ($request->type === 'WALK IN' && $request->has('payment_method')) {
-                $totalBalance = $transaction->total;
-                $outstandingBalance = $totalBalance - $request->payment_amount;
-
-                TransactionPayment::create([
-                    'transaction_id' => $transaction->id,
-                    'payment_method' => $request->payment_method,
-                    'payment_amount' => $request->payment_amount,
-                    'outstanding_balance' => $outstandingBalance,
-                    'total_balance' => $totalBalance
-                ]);
-
-                if ($outstandingBalance <= 0) {
-                    $transaction->update([
-                        'status' => 'COMPLETED',
-                        'payment_status' => 'PAID'
-                    ]);
-                }
-            }
-
-            DB::commit();
-
-            $transaction->load('delivery');
-
-            return $this->success('Transaction created successfully', new TransactionResource($transaction), 201);
+            $transaction = $transactions->create($request->validated());
         } catch (\Exception $e) {
-            DB::rollBack();
             return $this->error('Failed to create transaction: ' . $e->getMessage(), 500);
         }
+
+        $transaction->load('delivery');
+
+        return $this->success('Transaction created successfully', new TransactionResource($transaction), 201);
     }
 
     public function show(Transaction $transaction) {

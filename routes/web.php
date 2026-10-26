@@ -7,6 +7,10 @@ use App\Http\Controllers\Web\ItemController;
 use App\Http\Controllers\Web\TransactionController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/', function () {
+    return response('Laravel web route works!', 200);
+});
+
 Route::middleware('guest')->group(function () {
     Route::get('/', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])
@@ -23,6 +27,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/items/{item}', [ItemController::class, 'destroy'])->name('items.destroy');
     Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
     Route::get('/transactions/create', [TransactionController::class, 'create'])->name('transactions.create');
+    Route::post('/transactions', [TransactionController::class, 'store'])->name('transactions.store');
     Route::get('/transactions/{transaction}', [TransactionController::class, 'show'])->name('transactions.show');
     Route::post('/daily-items', [DailyItemController::class, 'store'])->name('daily-items.store');
     Route::put('/daily-items/{dailyItem}', [DailyItemController::class, 'update'])->name('daily-items.update');

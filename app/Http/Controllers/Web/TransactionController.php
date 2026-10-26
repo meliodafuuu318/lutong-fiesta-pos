@@ -3,7 +3,13 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Exceptions\TransactionException;
+use App\Http\Requests\Transaction\WebStoreTransactionRequest;
+use App\Models\Category;
+use App\Models\DailyItem;
 use App\Models\Transaction;
+use App\Services\TransactionService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -57,7 +63,37 @@ class TransactionController extends Controller
 
     public function create(): View
     {
-        return view('transactions.create');
+        // Today's menu, by category. Sold out items are listed too, but can't be picked.
+        $menuByCategory = DailyItem::todayMenu()
+            ->with('item')
+            ->get()
+            ->sortBy(fn (DailyItem $dailyItem) => $dailyItem->item->name)
+            ->groupBy(fn (DailyItem $dailyItem) => $dailyItem->item->category_id);
+
+        $categories = Category::whereIn('id', $menuByCategory->keys())
+            ->orderBy('id')
+            ->get();
+
+        return view('transactions.create', compact('categories', 'menuByCategory'));
+    }
+
+    public function store(WebStoreTransactionRequest $request, TransactionService $transactions): RedirectResponse
+    {
+        try {
+            $transaction = $transactions->create($request->validated());
+        } catch (TransactionException $e) {
+            // An item stopped being available between opening the form and submitting it.
+            $name = $e->dailyItemId ? DailyItem::with('item')->find($e->dailyItemId)?->item?->name : null;
+
+            return back()->withInput()->withErrors([
+                'transaction' => $name
+                    ? "{$name} isn't available today. Remove it and try again."
+                    : $e->getMessage(),
+            ], 'createTransaction');
+        }
+
+        return redirect()->route('transactions.show', $transaction)
+            ->with('status', "Transaction {$transaction->reference_number} created.");
     }
 
     public function show(Transaction $transaction): View
