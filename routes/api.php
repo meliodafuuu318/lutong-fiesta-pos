@@ -7,7 +7,8 @@ use App\Http\Controllers\{
     ItemController,
     DailyItemController,
     TransactionController,
-    DashboardController
+    DashboardController,
+    ExpenseController
 };
 
 Route::name('api.')->group(function () {
@@ -28,5 +29,7 @@ Route::name('api.')->group(function () {
         Route::apiResource('transactions', TransactionController::class);
         Route::put('transactions/{transaction}/cancel', [TransactionController::class, 'cancelTransaction'])->name('transactions.cancel');
         Route::put('transactions/{transaction}/refund', [TransactionController::class, 'refundTransaction'])->name('transactions.refund');
+
+        Route::apiResource('expenses', ExpenseController::class)->only(['index', 'store', 'destroy']);
     });
 });
