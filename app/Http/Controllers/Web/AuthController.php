@@ -19,20 +19,12 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request): RedirectResponse
     {
-        // error_log('[LOGIN-DEBUG] Before Auth::attempt');
+        error_log('[SSL-DEBUG] cwd='.getcwd());
+        error_log('[SSL-DEBUG] root cert=' .
+            (file_exists('/var/task/certs/ca.pem') ? 'yes' : 'no'));
 
-        // try {
-        //     $authenticated = Auth::attempt(
-        //         $request->only('username', 'password')
-        //     );
-
-        //     error_log('[LOGIN-DEBUG] Auth::attempt returned');
-        // } catch (\Throwable $e) {
-        //     error_log('[LOGIN-DEBUG] Exception: '.get_class($e));
-        //     error_log('[LOGIN-DEBUG] Message: '.$e->getMessage());
-
-        //     throw $e;
-        // }
+        error_log('[SSL-DEBUG] php cert=' .
+            (file_exists('/var/task/php/certs/ca.pem') ? 'yes' : 'no'));
 
         if (! Auth::attempt($request->only('username', 'password'))) {
             throw ValidationException::withMessages([
