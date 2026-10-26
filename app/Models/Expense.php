@@ -30,4 +30,8 @@ class Expense extends Model
     public function scopeWeekly($query) {
         return $query->whereBetween('expense_date', [now()->startOfWeek(), now()->endOfWeek()]);
     }
+
+    public function scopeMonthly($query) {
+        return $query->whereBetween('expense_date', [now()->startOfMonth(), now()->endOfMonth()]);
+    }
 }

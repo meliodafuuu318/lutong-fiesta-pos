@@ -13,6 +13,10 @@ class DashboardController extends Controller
     {
         $dailySales = $dashboard->dailySales();
         $weeklySales = $dashboard->weeklySales();
+        $monthlySales = $dashboard->monthlySales();
+        $dailyExpenses = $dashboard->dailyExpenses();
+        $weeklyExpenses = $dashboard->weeklyExpenses();
+        $monthlyExpenses = $dashboard->monthlyExpenses();
         $week = $dashboard->weekBreakdown();
         $pendingOrders = $dashboard->pendingOrders();
 
@@ -26,6 +30,10 @@ class DashboardController extends Controller
         return view('dashboard', compact(
             'dailySales',
             'weeklySales',
+            'monthlySales',
+            'dailyExpenses',
+            'weeklyExpenses',
+            'monthlyExpenses',
             'week',
             'pendingOrders',
             'pendingDeliveryCount',

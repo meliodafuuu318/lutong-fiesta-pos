@@ -5,10 +5,16 @@
 @section('main')
 @php
     $pendingCount = $pendingOrders->count();
-    $weekMax = max(1, $week->max(fn ($day) => max($day['sales'], $day['payments'])));
-    $weekHasSales = $week->sum('sales') > 0;
+    $weekMax = max(1, $week->max(fn ($day) => max($day['sales'], $day['payments'], $day['expenses'])));
+    $weekHasData = $week->sum('sales') > 0 || $week->sum('expenses') > 0;
     $tabClasses = 'shrink-0 cursor-pointer rounded-full border-2 border-cream-200 bg-cream-50 px-5 py-2 font-bold text-ink hover:border-teal-500 aria-selected:border-teal-700 aria-selected:bg-teal-700 aria-selected:text-cream-50';
     $peso = fn ($amount) => '₱' . number_format((float) $amount, 2);
+    $signedPeso = fn ($amount) => ($amount < 0 ? '−' : '') . '₱' . number_format(abs((float) $amount), 2);
+    $periods = [
+        ['label' => 'Today', 'hint' => now()->format('M j'), 'sales' => $dailySales['sales'], 'collected' => $dailySales['payments'], 'expenses' => $dailyExpenses],
+        ['label' => 'This week', 'hint' => now()->startOfWeek()->format('M j') . ' – ' . now()->endOfWeek()->format('M j'), 'sales' => $weeklySales['sales'], 'collected' => $weeklySales['payments'], 'expenses' => $weeklyExpenses],
+        ['label' => 'This month', 'hint' => now()->format('F Y'), 'sales' => $monthlySales['sales'], 'collected' => $monthlySales['payments'], 'expenses' => $monthlyExpenses],
+    ];
 @endphp
 
 <div class="pb-8">
@@ -16,10 +22,17 @@
         <h1 class="font-display text-2xl font-bold text-teal-900 sm:text-3xl">Dashboard</h1>
         <div class="flex flex-wrap items-center gap-3">
             <p class="font-semibold text-ink-soft">{{ now()->format('l, F j, Y') }}</p>
-            <a
-                href="{{ route('transactions.create') }}"
-                class="cursor-pointer rounded-lg bg-amber-500 px-4 py-2.5 font-display text-base font-bold leading-tight text-ink shadow-[0_4px_0_0_var(--color-amber-600)] transition hover:bg-amber-400 active:translate-y-[2px] active:shadow-[0_2px_0_0_var(--color-amber-600)]"
-            >Create Transaction</a>
+            <div class="flex w-full gap-3 sm:w-auto">
+                <button
+                    type="button"
+                    data-add-expense
+                    class="flex-1 cursor-pointer rounded-lg border-2 border-teal-700 px-4 py-2.5 text-center font-display text-base font-bold leading-tight text-teal-700 transition hover:bg-teal-700 hover:text-cream-50 sm:flex-none"
+                >Add Expense</button>
+                <a
+                    href="{{ route('transactions.create') }}"
+                    class="flex-1 cursor-pointer rounded-lg bg-amber-500 px-4 py-2.5 text-center font-display text-base font-bold leading-tight text-ink shadow-[0_4px_0_0_var(--color-amber-600)] transition hover:bg-amber-400 active:translate-y-[2px] active:shadow-[0_2px_0_0_var(--color-amber-600)] sm:flex-none"
+                >Create Transaction</a>
+            </div>
         </div>
     </div>
 
@@ -147,38 +160,56 @@
 
         {{-- ============ Analytics ============ --}}
         <div role="tabpanel" id="panel-analytics" aria-labelledby="tab-analytics" tabindex="0" class="mt-2" hidden>
-            <dl class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-                @foreach ([
-                    ["Today's sales", $dailySales['sales'], 'All orders placed today'],
-                    ['Collected today', $dailySales['payments'], 'Orders marked paid today'],
-                    ["This week's sales", $weeklySales['sales'], 'Monday to Sunday'],
-                    ['Collected this week', $weeklySales['payments'], 'Orders marked paid this week'],
-                ] as [$label, $value, $hint])
-                    <div class="rounded-xl border-2 border-t-4 border-cream-200 border-t-teal-600 bg-cream-50 p-4">
-                        <dt class="text-xs font-bold uppercase tracking-wide text-ink-soft">{{ $label }}</dt>
-                        <dd class="mt-1 break-words font-display text-xl font-bold text-teal-900 sm:text-2xl">{{ $peso($value) }}</dd>
-                        <dd class="mt-1 text-xs font-semibold text-ink-soft">{{ $hint }}</dd>
-                    </div>
+            <div class="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-3">
+                @foreach ($periods as $period)
+                    @php($net = (float) $period['collected'] - (float) $period['expenses'])
+                    <section class="rounded-xl border-2 border-t-4 border-cream-200 border-t-teal-600 bg-cream-50 p-4" aria-labelledby="period-{{ $loop->index }}">
+                        <div class="flex items-baseline justify-between gap-2">
+                            <h2 id="period-{{ $loop->index }}" class="font-display text-lg font-bold text-teal-900">{{ $period['label'] }}</h2>
+                            <p class="text-xs font-semibold text-ink-soft">{{ $period['hint'] }}</p>
+                        </div>
+                        <dl class="mt-3 grid grid-cols-2 gap-x-3 gap-y-3">
+                            <div class="min-w-0">
+                                <dt class="text-xs font-bold uppercase tracking-wide text-ink-soft">Sales</dt>
+                                <dd class="mt-0.5 break-words font-display text-lg font-bold text-teal-900 sm:text-xl">{{ $peso($period['sales']) }}</dd>
+                            </div>
+                            <div class="min-w-0">
+                                <dt class="text-xs font-bold uppercase tracking-wide text-ink-soft">Collected</dt>
+                                <dd class="mt-0.5 break-words font-display text-lg font-bold text-teal-700 sm:text-xl">{{ $peso($period['collected']) }}</dd>
+                            </div>
+                            <div class="min-w-0">
+                                <dt class="text-xs font-bold uppercase tracking-wide text-ink-soft">Expenses</dt>
+                                <dd class="mt-0.5 break-words font-display text-lg font-bold text-danger sm:text-xl">{{ $peso($period['expenses']) }}</dd>
+                            </div>
+                            <div class="min-w-0">
+                                <dt class="text-xs font-bold uppercase tracking-wide text-ink-soft">Net</dt>
+                                <dd @class(['mt-0.5 break-words font-display text-lg font-bold sm:text-xl', 'text-teal-900' => $net >= 0, 'text-danger' => $net < 0])>{{ $signedPeso($net) }}</dd>
+                            </div>
+                        </dl>
+                    </section>
                 @endforeach
-            </dl>
+            </div>
+            <p class="mt-2 text-xs font-semibold text-ink-soft">Collected is the total of orders marked paid. Net is collected minus expenses.</p>
 
             <section class="mt-6 rounded-xl border-2 border-cream-200 bg-cream-50" aria-labelledby="week-chart-title">
                 <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b-2 border-cream-200 px-5 py-3">
                     <h2 id="week-chart-title" class="font-display text-xl font-bold text-teal-900">This week</h2>
-                    <ul class="flex gap-4 text-sm font-semibold text-ink-soft">
+                    <ul class="flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold text-ink-soft">
                         <li class="flex items-center gap-1.5"><span class="size-3 rounded-sm bg-amber-500" aria-hidden="true"></span>Sales</li>
                         <li class="flex items-center gap-1.5"><span class="size-3 rounded-sm bg-teal-700" aria-hidden="true"></span>Collected</li>
+                        <li class="flex items-center gap-1.5"><span class="size-3 rounded-sm bg-danger" aria-hidden="true"></span>Expenses</li>
                     </ul>
                 </div>
 
-                @if ($weekHasSales)
+                @if ($weekHasData)
                     {{-- The table below has the same numbers for screen readers --}}
                     <div class="px-3 pb-4 pt-6 sm:px-5" aria-hidden="true">
                         <div class="flex h-56 items-end gap-1.5 border-b-2 border-cream-200 sm:gap-3">
                             @foreach ($week as $day)
-                                <div class="flex h-full min-w-0 flex-1 items-end justify-center gap-0.5 sm:gap-1" title="{{ $day['date']->format('D, M j') }}: sales {{ $peso($day['sales']) }}, collected {{ $peso($day['payments']) }}">
+                                <div class="flex h-full min-w-0 flex-1 items-end justify-center gap-0.5 sm:gap-1" title="{{ $day['date']->format('D, M j') }}: sales {{ $peso($day['sales']) }}, collected {{ $peso($day['payments']) }}, expenses {{ $peso($day['expenses']) }}">
                                     <div class="w-full max-w-7 rounded-t bg-amber-500" style="height: {{ $day['sales'] > 0 ? max(2, round($day['sales'] / $weekMax * 100, 1)) : 0 }}%"></div>
                                     <div class="w-full max-w-7 rounded-t bg-teal-700" style="height: {{ $day['payments'] > 0 ? max(2, round($day['payments'] / $weekMax * 100, 1)) : 0 }}%"></div>
+                                    <div class="w-full max-w-7 rounded-t bg-danger" style="height: {{ $day['expenses'] > 0 ? max(2, round($day['expenses'] / $weekMax * 100, 1)) : 0 }}%"></div>
                                 </div>
                             @endforeach
                         </div>
@@ -192,7 +223,7 @@
                         <p class="mt-3 text-right text-xs font-semibold text-ink-soft">Tallest bar: {{ $peso($weekMax) }}</p>
                     </div>
                 @else
-                    <p class="px-6 py-12 text-center text-ink-soft">No sales yet this week.</p>
+                    <p class="px-6 py-12 text-center text-ink-soft">No sales or expenses yet this week.</p>
                 @endif
             </section>
 
@@ -201,14 +232,15 @@
                     <h2 id="week-report-title" class="font-display text-xl font-bold text-teal-900">Daily report</h2>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full min-w-[26rem] text-right">
-                        <caption class="sr-only">Orders, sales and collected payments for each day of this week</caption>
+                    <table class="w-full min-w-[32rem] text-right">
+                        <caption class="sr-only">Orders, sales, collected payments and expenses for each day of this week</caption>
                         <thead class="bg-cream-100 text-xs font-bold uppercase tracking-wide text-ink-soft sm:text-sm">
                             <tr>
                                 <th scope="col" class="px-4 py-3 text-left">Day</th>
                                 <th scope="col" class="px-4 py-3">Orders</th>
                                 <th scope="col" class="px-4 py-3">Sales</th>
                                 <th scope="col" class="px-4 py-3">Collected</th>
+                                <th scope="col" class="px-4 py-3">Expenses</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -221,6 +253,7 @@
                                     <td class="px-4 py-3 font-semibold text-ink">{{ $day['orders'] }}</td>
                                     <td class="whitespace-nowrap px-4 py-3 font-bold text-ink">{{ $peso($day['sales']) }}</td>
                                     <td class="whitespace-nowrap px-4 py-3 font-bold text-teal-700">{{ $peso($day['payments']) }}</td>
+                                    <td class="whitespace-nowrap px-4 py-3 font-bold text-danger">{{ $peso($day['expenses']) }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -230,6 +263,7 @@
                                 <td class="px-4 py-3 font-bold text-ink">{{ $week->sum('orders') }}</td>
                                 <td class="whitespace-nowrap px-4 py-3 font-bold text-ink">{{ $peso($week->sum('sales')) }}</td>
                                 <td class="whitespace-nowrap px-4 py-3 font-bold text-teal-700">{{ $peso($week->sum('payments')) }}</td>
+                                <td class="whitespace-nowrap px-4 py-3 font-bold text-danger">{{ $peso($week->sum('expenses')) }}</td>
                             </tr>
                         </tfoot>
                     </table>

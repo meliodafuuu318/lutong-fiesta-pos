@@ -2,14 +2,15 @@
 
 namespace App\Services;
 
+use App\Models\Expense;
 use App\Models\Transaction;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Collection;
 
 /**
  * The numbers behind the dashboard. Same figures as the API's dashboard
- * endpoint (daily sales, weekly sales, pending deliveries, pending payments),
- * plus a per-day breakdown of the week for the chart.
+ * endpoint (daily and weekly sales and expenses, pending deliveries, pending
+ * payments), plus monthly figures and a per-day breakdown of the week.
  */
 class DashboardService
 {
@@ -31,11 +32,35 @@ class DashboardService
         ];
     }
 
+    /** @return array{sales: float|int|string, payments: float|int|string} */
+    public function monthlySales(): array
+    {
+        return [
+            'sales' => Transaction::monthly()->sum('total'),
+            'payments' => Transaction::monthly()->where('payment_status', 'PAID')->sum('total'),
+        ];
+    }
+
+    public function dailyExpenses(): float
+    {
+        return (float) Expense::today()->sum('amount');
+    }
+
+    public function weeklyExpenses(): float
+    {
+        return (float) Expense::weekly()->sum('amount');
+    }
+
+    public function monthlyExpenses(): float
+    {
+        return (float) Expense::monthly()->sum('amount');
+    }
+
     /**
      * Monday to Sunday of this week, one row per day, with the same
      * definitions as dailySales()/weeklySales() ("payments" = total of PAID orders).
      *
-     * @return Collection<int, array{date: \Carbon\CarbonInterface, orders: int, sales: float, payments: float, is_today: bool}>
+     * @return Collection<int, array{date: \Carbon\CarbonInterface, orders: int, sales: float, payments: float, expenses: float, is_today: bool}>
      */
     public function weekBreakdown(): Collection
     {
@@ -45,8 +70,13 @@ class DashboardService
             ->get()
             ->keyBy('day');
 
+        $expenses = Expense::weekly()
+            ->selectRaw('DATE(expense_date) as day, SUM(amount) as total')
+            ->groupBy('day')
+            ->pluck('total', 'day');
+
         return collect(CarbonPeriod::create(now()->startOfWeek(), now()->endOfWeek()))
-            ->map(function ($date) use ($rows) {
+            ->map(function ($date) use ($rows, $expenses) {
                 $row = $rows->get($date->toDateString());
 
                 return [
@@ -54,6 +84,7 @@ class DashboardService
                     'orders' => (int) ($row->orders ?? 0),
                     'sales' => (float) ($row->sales ?? 0),
                     'payments' => (float) ($row->payments ?? 0),
+                    'expenses' => (float) ($expenses[$date->toDateString()] ?? 0),
                     'is_today' => $date->isToday(),
                 ];
             })

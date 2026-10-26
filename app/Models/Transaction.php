@@ -101,4 +101,8 @@ class Transaction extends Model
     public function scopeWeekly($query) {
         return $query->whereBetween('transaction_date', [now()->startOfWeek(), now()->endOfWeek()]);
     }
+
+    public function scopeMonthly($query) {
+        return $query->whereBetween('transaction_date', [now()->startOfMonth(), now()->endOfMonth()]);
+    }
 }
