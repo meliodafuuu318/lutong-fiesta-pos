@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Exceptions\TransactionException;
+use App\Http\Requests\Transaction\WebAddPaymentRequest;
 use App\Http\Requests\Transaction\WebStoreTransactionRequest;
 use App\Models\Category;
 use App\Models\DailyItem;
@@ -109,5 +110,51 @@ class TransactionController extends Controller
         $payments = $transaction->transactionPayments->sortByDesc('id');
 
         return view('transactions.show', compact('transaction', 'payments'));
+    }
+
+    public function addPayment(WebAddPaymentRequest $request, Transaction $transaction, TransactionService $transactions): RedirectResponse
+    {
+        try {
+            $transactions->addPayment(
+                $transaction,
+                $request->validated('payment_method'),
+                $request->validated('payment_amount'),
+            );
+        } catch (TransactionException $e) {
+            return $this->backToPendingOrders()->withErrors(['order' => $e->getMessage()]);
+        }
+
+        $transaction->refresh();
+        $amount = number_format((float) $request->validated('payment_amount'), 2);
+
+        if ($transaction->payment_status === 'PAID') {
+            $message = "Payment of ₱{$amount} recorded. {$transaction->reference_number} is fully paid.";
+
+            if ($transaction->change() > 0) {
+                $message .= ' Change: ₱' . number_format($transaction->change(), 2) . '.';
+            }
+        } else {
+            $message = "Payment of ₱{$amount} recorded. ₱" . number_format($transaction->outstandingBalance(), 2) . ' still due.';
+        }
+
+        return $this->backToPendingOrders()->with('status', $message);
+    }
+
+    public function markDelivered(Transaction $transaction, TransactionService $transactions): RedirectResponse
+    {
+        try {
+            $transactions->markDelivered($transaction);
+        } catch (TransactionException $e) {
+            return $this->backToPendingOrders()->withErrors(['order' => $e->getMessage()]);
+        }
+
+        return $this->backToPendingOrders()
+            ->with('status', "{$transaction->reference_number} marked as delivered.");
+    }
+
+    /** Both actions happen on the dashboard's pending orders tab. */
+    private function backToPendingOrders(): RedirectResponse
+    {
+        return redirect()->to(route('dashboard') . '#tab-pending');
     }
 }

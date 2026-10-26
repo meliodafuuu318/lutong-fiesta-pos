@@ -1,5 +1,5 @@
 {{-- Notification: fixed so that it disappearing never shifts the page --}}
-@php($flashError = $errors->first('daily_item') ?: $errors->first('item'))
+@php($flashError = $errors->first('daily_item') ?: $errors->first('item') ?: $errors->first('order'))
 
 @if (session('status'))
     <p

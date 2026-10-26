@@ -547,3 +547,124 @@ if (transactionForm && transactionConfirmDialog) {
     cards.forEach((card) => setQuantity(card, card.dataset.initial));
     applyType();
 }
+
+// Dashboard: pending orders (filter, add payment, mark delivered)
+const pendingRoot = document.querySelector('[data-pending]');
+
+if (pendingRoot) {
+    const peso = (cents) => '₱' + (cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const toCents = (value) => Math.round(Number(value) * 100) || 0;
+
+    // Filter: all / deliveries / payments
+    const chips = [...pendingRoot.querySelectorAll('[data-pending-filter]')];
+    const cards = [...pendingRoot.querySelectorAll('[data-pending-card]')];
+    const filterEmpty = pendingRoot.querySelector('[data-pending-filter-empty]');
+
+    const applyFilter = (kind) => {
+        let shown = 0;
+        chips.forEach((chip) => chip.setAttribute('aria-pressed', String(chip.dataset.pendingFilter === kind)));
+        cards.forEach((card) => {
+            const match = kind === 'all' || card.dataset[kind] === '1';
+            card.hidden = !match;
+            if (match) shown++;
+        });
+        if (filterEmpty) filterEmpty.hidden = shown > 0;
+    };
+
+    chips.forEach((chip) => chip.addEventListener('click', () => applyFilter(chip.dataset.pendingFilter)));
+
+    // Add payment
+    const paymentDialog = document.getElementById('payment-dialog');
+
+    if (paymentDialog) {
+        wireDialog(paymentDialog);
+
+        const form = paymentDialog.querySelector('[data-payment-form]');
+        const amountInput = form.elements.payment_amount;
+        const methodSelect = form.elements.payment_method;
+        const hint = paymentDialog.querySelector('[data-payment-hint]');
+        let dueCents = 0;
+
+        const updateHint = () => {
+            const entered = toCents(amountInput.value);
+            if (entered <= 0) {
+                hint.textContent = '';
+                return;
+            }
+            const diff = entered - dueCents;
+            if (diff > 0) hint.textContent = `Change to give back: ${peso(diff)}. This pays the order in full.`;
+            else if (diff === 0) hint.textContent = 'This pays the order in full.';
+            else hint.textContent = `${peso(-diff)} will still be due after this payment.`;
+        };
+
+        const openPayment = (button, old = {}) => {
+            const { id, reference, total, paid, due } = button.dataset;
+            dueCents = toCents(due);
+
+            form.action = form.dataset.url.replace('__ID__', id);
+            form.elements.transaction_id.value = id;
+            paymentDialog.querySelector('[data-payment-reference]').textContent = reference;
+            paymentDialog.querySelector('[data-payment-total]').textContent = peso(toCents(total));
+            paymentDialog.querySelector('[data-payment-paid]').textContent = peso(toCents(paid));
+            paymentDialog.querySelector('[data-payment-due]').textContent = peso(dueCents);
+
+            methodSelect.value = old.method || 'CASH';
+            amountInput.value = old.amount ?? '';
+            updateHint();
+            paymentDialog.showModal();
+            amountInput.focus();
+        };
+
+        pendingRoot.querySelectorAll('[data-pending-pay]').forEach((button) => {
+            button.addEventListener('click', () => openPayment(button));
+        });
+
+        amountInput.addEventListener('input', updateHint);
+
+        paymentDialog.querySelector('[data-payment-exact]').addEventListener('click', () => {
+            amountInput.value = (dueCents / 100).toFixed(2);
+            updateHint();
+            amountInput.focus();
+        });
+
+        // Back with errors: open the same order again with what was typed
+        if (paymentDialog.dataset.reopen) {
+            const button = pendingRoot.querySelector(`[data-pending-pay][data-id="${paymentDialog.dataset.oldTransaction}"]`);
+            if (button) {
+                openPayment(button, { method: paymentDialog.dataset.oldMethod, amount: paymentDialog.dataset.oldAmount });
+            }
+        }
+    }
+
+    // Mark delivered
+    const deliverDialog = document.getElementById('deliver-dialog');
+
+    if (deliverDialog) {
+        wireDialog(deliverDialog);
+
+        const form = deliverDialog.querySelector('[data-deliver-form]');
+
+        pendingRoot.querySelectorAll('[data-pending-deliver]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const { id, reference, address } = button.dataset;
+                form.action = form.dataset.url.replace('__ID__', id);
+                deliverDialog.querySelector('[data-deliver-reference]').textContent = reference;
+                deliverDialog.querySelector('[data-deliver-address]').textContent = address;
+                deliverDialog.showModal();
+            });
+        });
+    }
+
+    // One submit per click, and a back/forward trip must not leave the buttons disabled
+    const submitButtons = [paymentDialog, deliverDialog]
+        .filter(Boolean)
+        .map((dialog) => {
+            const submit = dialog.querySelector('button[type="submit"]');
+            submit.form.addEventListener('submit', () => { submit.disabled = true; });
+            return submit;
+        });
+
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted) submitButtons.forEach((button) => { button.disabled = false; });
+    });
+}

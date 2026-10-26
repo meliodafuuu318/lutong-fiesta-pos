@@ -93,4 +93,82 @@ class TransactionService
             return $transaction;
         });
     }
+
+    /**
+     * Record a payment on a transaction that isn't fully paid yet.
+     *
+     * Same rules as the API: a payment that covers the balance (or more, in which
+     * case the rest is change) marks the transaction COMPLETED and PAID.
+     *
+     * @throws TransactionException when the transaction can't take a payment
+     */
+    public function addPayment(Transaction $transaction, string $method, float|int|string $amount): TransactionPayment
+    {
+        return DB::transaction(function () use ($transaction, $method, $amount) {
+            // Locked so that two people paying at once can't both see the old balance.
+            $transaction = Transaction::whereKey($transaction->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($transaction->isVoid()) {
+                throw new TransactionException('This transaction was cancelled or refunded, so it can\'t take payments.');
+            }
+
+            if ($transaction->payment_status === 'PAID') {
+                throw new TransactionException('This transaction is already fully paid.');
+            }
+
+            $outstandingBalance = round(
+                (float) $transaction->total
+                - (float) $transaction->transactionPayments()->sum('payment_amount')
+                - (float) $amount,
+                2,
+            );
+
+            $payment = TransactionPayment::create([
+                'transaction_id' => $transaction->id,
+                'payment_method' => $method,
+                'payment_amount' => $amount,
+                'outstanding_balance' => $outstandingBalance,
+                'total_balance' => $transaction->total,
+            ]);
+
+            if ($outstandingBalance <= 0) {
+                $transaction->update([
+                    'status' => 'COMPLETED',
+                    'payment_status' => 'PAID',
+                ]);
+            }
+
+            return $payment;
+        });
+    }
+
+    /**
+     * Mark a pending delivery as delivered.
+     *
+     * @throws TransactionException when there is no pending delivery to mark
+     */
+    public function markDelivered(Transaction $transaction): Delivery
+    {
+        return DB::transaction(function () use ($transaction) {
+            $transaction = Transaction::whereKey($transaction->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($transaction->isVoid()) {
+                throw new TransactionException('This transaction was cancelled or refunded, so it can\'t be delivered.');
+            }
+
+            $delivery = $transaction->delivery;
+
+            if (! $delivery) {
+                throw new TransactionException('This transaction has no delivery.');
+            }
+
+            if ($delivery->status !== 'PENDING') {
+                throw new TransactionException('This delivery is no longer pending.');
+            }
+
+            $delivery->update(['status' => 'DELIVERED']);
+
+            return $delivery;
+        });
+    }
 }

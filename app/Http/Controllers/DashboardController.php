@@ -36,13 +36,13 @@ class DashboardController extends Controller
     }
 
     private function getPendingDeliveries() {
-        return Transaction::pendingDeliveries()
+        return Transaction::pendingDelivery()
             ->with('delivery')
             ->get();
     }
 
     private function getPendingPayments() {
-        return Transaction::pendingPayments()
+        return Transaction::pendingPayment()
             ->withSum('transactionPayments', 'payment_amount')
             ->get();
     }

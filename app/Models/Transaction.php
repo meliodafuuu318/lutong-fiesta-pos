@@ -89,6 +89,11 @@ class Transaction extends Model
         return $query->where('payment_status', 'PENDING');
     }
 
+    /** Everything except cancelled and refunded transactions. */
+    public function scopeActive($query) {
+        return $query->whereNotIn('status', ['CANCELLED', 'REFUNDED']);
+    }
+
     public function scopeToday($query) {
         return $query->whereDate('transaction_date', now()->toDateString());
     }
