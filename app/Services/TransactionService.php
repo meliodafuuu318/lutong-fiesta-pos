@@ -126,6 +126,10 @@ class TransactionService
                 'total_balance' => $transaction->total,
             ]);
 
+            if ($outstandingBalance <= 0) {
+                $transaction->update(['payment_status' => 'PAID']);
+            }
+
             $this->syncOverallStatus($transaction);
 
             return $payment;

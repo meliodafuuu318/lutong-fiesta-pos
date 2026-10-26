@@ -109,10 +109,7 @@ class TransactionController extends Controller
                 ]);
 
                 if ($outstandingBalance <= 0) {
-                    $transaction->update([
-                        'status' => 'COMPLETED',
-                        'payment_status' => 'PAID'
-                    ]);
+                    $transaction->update(['payment_status' => 'PAID']);
                 }
             }
 
