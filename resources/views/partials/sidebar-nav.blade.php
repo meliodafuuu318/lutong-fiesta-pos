@@ -2,6 +2,7 @@
     // Menu tabs. Add one entry per page as it gets built.
     $links = [
         ['label' => 'Dashboard', 'route' => 'dashboard', 'active' => 'dashboard'],
+        ['label' => 'Menu', 'route' => 'menu', 'active' => 'menu'],
         ['label' => 'Items', 'route' => 'items.index', 'active' => 'items.*'],
         ['label' => 'Transactions', 'route' => 'transactions.index', 'active' => 'transactions.*'],
     ];

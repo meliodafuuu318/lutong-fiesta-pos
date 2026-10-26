@@ -16,7 +16,7 @@ class DailyItemController extends Controller
         $item = Item::findOrFail($request->validated('item_id'));
 
         if (DailyItem::todayMenu()->where('item_id', $item->id)->exists()) {
-            return redirect()->route('dashboard')
+            return redirect()->route('menu')
                 ->withErrors(['daily_item' => "{$item->name} is already on today's menu."]);
         }
 
@@ -27,20 +27,20 @@ class DailyItemController extends Controller
             'status' => 'AVAILABLE',
         ]);
 
-        return redirect()->to(route('dashboard') . '#tab-' . $item->category_id)
+        return redirect()->to(route('menu') . '#tab-' . $item->category_id)
             ->with('status', "{$item->name} added to today's menu.");
     }
 
     public function update(WebUpdateDailyItemRequest $request, DailyItem $dailyItem): RedirectResponse
     {
         if (! $dailyItem->date->isToday()) {
-            return $this->backToDashboard($dailyItem)
+            return $this->backToMenu($dailyItem)
                 ->withErrors(['daily_item' => 'Only items on today\'s menu can be changed.']);
         }
 
         $dailyItem->update($request->validated());
 
-        return $this->backToDashboard($dailyItem)
+        return $this->backToMenu($dailyItem)
             ->with('status', "{$dailyItem->item->name} updated.");
     }
 
@@ -49,25 +49,25 @@ class DailyItemController extends Controller
         $name = $dailyItem->item->name;
 
         if ($dailyItem->transactionItems()->exists()) {
-            return $this->backToDashboard($dailyItem)->withErrors([
+            return $this->backToMenu($dailyItem)->withErrors([
                 'daily_item' => "{$name} already has orders, so it can't be removed. Mark it as sold out instead.",
             ]);
         }
 
         if (! $dailyItem->date->isToday()) {
-            return $this->backToDashboard($dailyItem)
+            return $this->backToMenu($dailyItem)
                 ->withErrors(['daily_item' => 'Only items on today\'s menu can be removed.']);
         }
 
         $dailyItem->delete();
 
-        return $this->backToDashboard($dailyItem)
+        return $this->backToMenu($dailyItem)
             ->with('status', "{$name} removed from today's menu.");
     }
 
-    /** Back to the dashboard, on the tab the item lives in. */
-    private function backToDashboard(DailyItem $dailyItem): RedirectResponse
+    /** Back to the menu page, on the tab the item lives in. */
+    private function backToMenu(DailyItem $dailyItem): RedirectResponse
     {
-        return redirect()->to(route('dashboard') . '#tab-' . $dailyItem->item->category_id);
+        return redirect()->to(route('menu') . '#tab-' . $dailyItem->item->category_id);
     }
 }

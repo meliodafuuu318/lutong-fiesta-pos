@@ -60,7 +60,7 @@
 
                     @if ($categories->isEmpty())
                         <p class="rounded-xl border-2 border-dashed border-cream-200 px-6 py-10 text-center text-ink-soft">
-                            There's nothing on today's menu yet. Add items to the menu from the dashboard first.
+                            There's nothing on today's menu yet. Add items to the menu from the Menu page first.
                         </p>
                     @else
                         <div data-tabs>

@@ -77,4 +77,23 @@ class Transaction extends Model
 
         return max(0.0, round($this->amountPaid() - (float) $this->total, 2));
     }
+
+    public function scopePendingDelivery($query) {
+        return $query->where('type', 'DELIVERY')
+            ->whereHas('delivery', function ($q) {
+                $q->where('status', 'PENDING');
+            });
+    }
+
+    public function scopePendingPayment($query) {
+        return $query->where('payment_status', 'PENDING');
+    }
+
+    public function scopeToday($query) {
+        return $query->whereDate('transaction_date', now()->toDateString());
+    }
+
+    public function scopeWeekly($query) {
+        return $query->whereBetween('transaction_date', [now()->startOfWeek(), now()->endOfWeek()]);
+    }
 }

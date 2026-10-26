@@ -19,13 +19,6 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request): RedirectResponse
     {
-        // error_log('[SSL-DEBUG] cwd='.getcwd());
-        // error_log('[SSL-DEBUG] root cert=' .
-        //     (file_exists('/var/task/certs/ca.pem') ? 'yes' : 'no'));
-
-        // error_log('[SSL-DEBUG] php cert=' .
-        //     (file_exists('/var/task/php/certs/ca.pem') ? 'yes' : 'no'));
-
         if (! Auth::attempt($request->only('username', 'password'))) {
             throw ValidationException::withMessages([
                 'username' => 'Username or password is incorrect.',
