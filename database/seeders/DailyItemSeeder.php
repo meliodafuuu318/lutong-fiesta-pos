@@ -8,54 +8,244 @@ use Illuminate\Database\Seeder;
 
 class DailyItemSeeder extends Seeder
 {
-    /** Days of past menus to create, counting back from yesterday. */
-    private const DAYS = 5;
-
-    /** How many items of each category end up on a day's menu: [min, max]. */
-    private const PER_CATEGORY = [
-        'Food' => [7, 11],
-        'Beverages' => [2, 5],
-        'Add-ons' => [1, 3],
-    ];
-
-    /** Chance, in percent, that an item on a past menu ended the day sold out. */
-    private const SOLD_OUT_CHANCE = 25;
-
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
-        $itemsByCategory = Item::with('category')
-            ->where('is_active', true)
-            ->get()
-            ->groupBy(fn (Item $item) => $item->category->name);
+        $dailyMenus = [
+            '2026-10-12' => [
+                'Sinigang' => 80,
+                'Pork Adobo' => 80,
+                'Pork Shanghai' => 10,
+                'Chicken Pochero' => 80,
+                'Menudo' => 80,
+                'Ginataang Tulingan' => 70,
+                'RIce' => 15,
+            ],
+            '2026-10-13' => [
+                'Adobong Atay Balunan' => 80,
+                'Paksiw' => 75,
+                'Ampalaya' => 55,
+                'Bicol Express' => 80,
+                'Pork Shanghai' => 10,
+                'Rice' => 15,
+            ],
+            '2026-10-14' => [
+                'Pinakbet' => 55,
+                'Sisig' => 80,
+                'Pork Binagoongan' => 80,
+                'Pork Bistek' => 80,
+                'Pork Shanghai' => 10,
+                'Rice' => 15,
+                'Loam Soil (Pickup)' => 90,
+                'Loam Soil (Delivery)' => 100,
+            ],
+            '2026-10-15' => [
+                'Pork Adobo' => 80,
+                'Pork Dinuguan' => 80,
+                'Laing' => 55,
+                'Paksiw' => 75,
+                'Pork Bistek' => 80,
+                'Pininyahang Manok' => 80,
+                'Pork Shanghai' => 10,
+                'Rice' => 15,
+                'Loam Soil (Pickup)' => 90,
+                'Loam Soil (Delivery)' => 100,
+            ],
+            '2026-10-16' => [
+                'Labong' => 55,
+                'Laing' => 55,
+                'Lumpiang Togue' => 15,
+                'Pork Adobo' => 80,
+                'Chicken BBQ' => 80,
+                'Pork Igado' => 80,
+                'Pork Shanghai' => 10,
+                'Rice' => 15,
+                'Loam Soil (Pickup)' => 90,
+                'Loam Soil (Delivery)' => 100,
+            ],
+            '2026-10-17' => [
+                'Puto (6pcs)' => 65,
+                'Pork Adobo' => 80,
+                'Adobong Atay Balunan' => 80,
+                'Pinakbet' => 55,
+                'Lumpiang Togue' => 15,
+                'Buttered Mixed Veggies' => 60,
+                'Torta Giniling' => 80,
+                'Roasted Chicken' => 100,
+                'Pork Shanghai' => 10,
+                'Rice' => 15,
+                'Loam Soil (Pickup)' => 90,
+                'Loam Soil (Delivery)' => 100,
+            ],
+            '2026-10-18' => [
+                'Chicken Tinola' => 80,
+                'Chicken Adobo' => 80,
+                'Puto (6pcs)' => 65,
+                'Labong' => 55,
+                'Pork Igado' => 80,
+                'Pork Humba' => 80,
+                'Adobong Atay Balunan' => 80,
+                'Buttered Mixed Veggies' => 60,
+                'Fried Tilapia' => 50,
+                'Torta Giniling' => 80,
+                'Pork Shanghai' => 10,
+                'Rice' => 15,
+                'Loam Soil (Pickup)' => 90,
+                'Loam Soil (Delivery)' => 100,
+            ],
+            '2026-10-19' => [
+                'Adobong Atay Balunan' => 80,
+                'Fried Tilapia' => 50,
+                'Ginataang Langka' => 55,
+                'Menudo' => 80,
+                'Pork Shanghai' => 10,
+                'Rice' => 15,
+                'Loam Soil (Pickup)' => 90,
+                'Loam Soil (Delivery)' => 100,
+            ],
+            '2026-10-20' => [
+                'Ginataang Langka' => 55,
+                'Fried Tilapia' => 50,
+                'Laing' => 55,
+                'Adobong Atay Balunan' => 80,
+                'Pork Adobo' => 80,
+                'Menudo' => 80,
+                'Stir-fry Kangkong' => 55,
+                'Pork Shanghai' => 10,
+                'Rice' => 15,
+                'Coke Mismo' => 20,
+                'Royal Mismo' => 20,
+                'Cobra' => 20,
+                'Mineral Water' => 20,
+                'Loam Soil (Pickup)' => 90,
+                'Loam Soil (Delivery)' => 100,
+            ],
+            '2026-10-21' => [
+                'Ginataang Langka' => 55,
+                'Sisig' => 80,
+                'Stir-fry Kangkong' => 55,
+                'Pork Dinuguan' => 80,
+                'Pork Shanghai' => 10,
+                'Rice' => 15,
+                'Coke Mismo' => 20,
+                'Royal Mismo' => 20,
+                'Cobra' => 20,
+                'Mineral Water' => 20,
+                'Loam Soil (Pickup)' => 90,
+                'Loam Soil (Delivery)' => 100,
+            ],
+            '2026-10-22' => [
+                'Ginataang Langka' => 55,
+                'Pork Adobo' => 80,
+                'Sinigang' => 80,
+                'Fried Tilapia' => 50,
+                'Adobong Sitaw' => 50,
+                'Pork Igado' => 80,
+                'Chicken Adobo' => 80,
+                'Pork Shanghai' => 10,
+                'Rice' => 15,
+                'Coke Mismo' => 20,
+                'Royal Mismo' => 20,
+                'Cobra' => 20,
+                'Mineral Water' => 20,
+                'Loam Soil (Pickup)' => 90,
+                'Loam Soil (Delivery)' => 100,
+            ],
+            '2026-10-23' => [
+                'Pork Adobo' => 80,
+                'Adobong Atay Balunan' => 80,
+                'Chicken Adobo' => 80,
+                'Pork Shanghai' => 10,
+                'Rice' => 15,
+                'Coke Mismo' => 20,
+                'Royal Mismo' => 20,
+                'Cobra' => 20,
+                'Mineral Water' => 20,
+                'Loam Soil (Pickup)' => 90,
+                'Loam Soil (Delivery)' => 100,
+            ],
+            '2026-10-24' => [
+                'Pork Adobo' => 80,
+                'Ginisang Upo' => 50,
+                'Paksiw' => 75,
+                'Laing' => 55,
+                'Pork Ribs Caldereta' => 80,
+                'Sarsyadong Tilapia' => 70,
+                'Adobong Atay Balunan' => 80,
+                'Ginataang Langka' => 55,    
+                'Pork Shanghai' => 10,
+                'Rice' => 15,
+                'Coke Mismo' => 20,
+                'Royal Mismo' => 20,
+                'Cobra' => 20,
+                'Mineral Water' => 20,
+                'Loam Soil (Pickup)' => 90,
+                'Loam Soil (Delivery)' => 100,
+            ],
+            '2026-10-25' => [
+                'Pork Ribs Caldereta' => 80,
+                'Pork Adobo' => 80,
+                'Sarsyadong Tilapia' => 70,
+                'Sisig' => 80,
+                'Adobong Atay Balunan' => 80,
+                'Bicol Express' => 80,
+                'Afritada' => 80,
+                'Sinigang' => 80,
+                'Pork Shanghai' => 10,
+                'Rice' => 15,
+                'Coke Mismo' => 20,
+                'Royal Mismo' => 20,
+                'Cobra' => 20,
+                'Mineral Water' => 20,
+                'Loam Soil (Pickup)' => 90,
+                'Loam Soil (Delivery)' => 100,
+            ],
+            '2026-10-26' => [
+                'Munggo' => 55,
+                'Chicken Hamonado' => 80,
+                'Lumpiang Togue' => 15,
+                'Menudo' => 80,
+                'Adobong Atay Balunan' => 80,
+                'Pork Adobo' => 80,
+                'Pork Shanghai' => 10,
+                'Rice' => 15,
+                'Coke Mismo' => 20,
+                'Royal Mismo' => 20,
+                'Cobra' => 20,
+                'Mineral Water' => 20,
+                'Loam Soil (Pickup)' => 90,
+                'Loam Soil (Delivery)' => 100,
+            ],
+            '2026-10-27' => [
+                'Pork Adobo' => 80,
+                'Menudo' => 80,
+                'Pork Dinuguan' => 80,
+                'Chicken Hamonado' => 80,
+                'Pata/Liempo Caldereta' => 80,
+                'Escabeche Bangus' => 75,
+                'Pork Shanghai' => 10,
+                'Rice' => 15,
+                'Coke Mismo' => 20,
+                'Royal Mismo' => 20,
+                'Cobra' => 20,
+                'Mineral Water' => 20,
+                'Loam Soil (Pickup)' => 90,
+                'Loam Soil (Delivery)' => 100,
+            ],
+        ];
 
-        for ($daysAgo = 1; $daysAgo <= self::DAYS; $daysAgo++) {
-            $date = today()->subDays($daysAgo);
+        foreach ($dailyMenus as $date => $items) {
+            foreach ($items as $itemName => $price) {
+                $item = Item::where('name', $itemName)->first();
 
-            // A day that already has a menu is left alone, so re-running never
-            // duplicates anything (or deletes anything that has transactions).
-            if (DailyItem::whereDate('date', $date)->exists()) {
-                continue;
-            }
-
-            foreach (self::PER_CATEGORY as $category => [$min, $max]) {
-                $items = $itemsByCategory->get($category, collect())
-                    ->shuffle()
-                    ->take(random_int($min, $max));
-
-                foreach ($items as $item) {
-                    $dailyItem = new DailyItem([
+                if ($item) {
+                    DailyItem::create([
                         'item_id' => $item->id,
-                        'price' => $item->default_price,
                         'date' => $date,
-                        'status' => random_int(1, 100) <= self::SOLD_OUT_CHANCE ? 'SOLD OUT' : 'AVAILABLE',
+                        'price' => $price,
                     ]);
-
-                    // Menus are put together in the morning of their day.
-                    $dailyItem->created_at = $dailyItem->updated_at = $date->copy()->setTime(7, 0);
-                    $dailyItem->save();
                 }
             }
         }

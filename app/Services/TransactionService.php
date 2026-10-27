@@ -19,8 +19,8 @@ class TransactionService
      * Create a transaction with its items, and its delivery or first payment.
      *
      * $data is a validated StoreTransactionRequest: type, transaction_items
-     * (daily_item_id + quantity), and address (DELIVERY) or payment_method and
-     * payment_amount (WALK IN). Everything is saved or nothing is.
+     * (daily_item_id + quantity or unit_price), and address (DELIVERY) or
+     * payment_method and payment_amount (WALK IN). Everything is saved or nothing is.
      *
      * @throws TransactionException when an item isn't on today's available menu
      */
@@ -48,14 +48,18 @@ class TransactionService
                     );
                 }
 
-                $amount = $dailyItem->price * $item['quantity'];
+                $quantity = $item['quantity'] ?? null;
+                $unitPrice = $quantity === null
+                    ? (float) $item['unit_price']
+                    : (float) $dailyItem->price;
+                $amount = $unitPrice * ($quantity ?? 1);
                 $totalAmount += $amount;
 
                 TransactionItem::create([
                     'transaction_id' => $transaction->id,
                     'daily_item_id' => $dailyItem->id,
-                    'unit_price' => $dailyItem->price,
-                    'quantity' => $item['quantity'],
+                    'unit_price' => $unitPrice,
+                    'quantity' => $quantity,
                     'subtotal' => $amount,
                 ]);
             }

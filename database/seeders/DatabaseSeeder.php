@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             ItemSeeder::class,
             DailyItemSeeder::class,
             TransactionSeeder::class,
+            ExpenseSeeder::class,
         ]);
     }
 }

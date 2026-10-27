@@ -15,6 +15,33 @@ class ItemSeeder extends Seeder
     {
         $menu = [
             'Food' => [
+                'Chicken Pochero' => 80,
+                'Ginataang Tulingan' => 70,
+                'Ampalaya' => 55,
+                'Sisig' => 80,
+                'Pork Binagoongan' => 80,
+                'Pork Bistek' => 80,
+                'Pork Dinuguan' => 80,
+                'Pininyahang Manok' => 80,
+                'Labong' => 55,
+                'Chicken BBQ' => 80,
+                'Pork Igado' => 80,
+                'Buttered Mixed Veggies' => 60,
+                'Puto (6pcs)' => 65,
+                'Roasted Chicken' => 100,
+                'Chicken Tinola' => 80,
+                'Pork Humba' => 80,
+                'Ginataang Langka' => 55,
+                'Stir-fry Kangkong' => 55,
+                'Adobong Sitaw' => 50,
+                'Sarsyadong Tilapia' => 70,
+                'Pork Ribs Caldereta' => 80,
+                'Afritada' => 80,
+                'Munggo' => 55,
+                'Chicken Hamonado' => 80,
+                'Ginisang Upo' => 50,
+                'Pata/Liempo Caldereta' => 80,
+                'Escabeche Bangus' => 75,
                 'Pork Adobo' => 80,
                 'Adobong Atay Balunan' => 80,
                 'Bicol Express' => 80,
@@ -31,19 +58,15 @@ class ItemSeeder extends Seeder
                 'Rice' => 15,
             ],
             'Beverages' => [
-                'Coke Mismo' => 25,
-                'Sprite Mismo' => 25,
-                'Royal Mismo' => 25,
-                'Coke 1.5L' => 80,
-                'Sprite 1.5L' => 80,
-                'Royal 1.5L' => 80,
+                'Coke Mismo' => 20,
+                'Royal Mismo' => 20,
+                'Cobra' => 20,
+                'Mineral Water' => 20,
             ],
-            'Add-ons' => [
-                'Sweet Chili Dip' => 5,
-                'Sweet and Sour Dip' => 5,
-                'Spicy Vinegar Dip' => 5,
-                'Toyomansi Dip' => 5,
-            ],
+            'Misc' => [
+                'Loam Soil (Pickup)' => 90,
+                'Loam Soil (Delivery)' => 100,
+            ]
         ];
 
         foreach ($menu as $categoryName => $items) {

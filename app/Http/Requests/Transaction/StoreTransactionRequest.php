@@ -25,7 +25,8 @@ class StoreTransactionRequest extends FormRequest
         return [
             'transaction_items' => ['required', 'array'],
             'transaction_items.*.daily_item_id' => ['required', 'exists:daily_items,id'],
-            'transaction_items.*.quantity' => ['required', 'integer', 'min:1'],
+            'transaction_items.*.quantity' => ['nullable', 'integer', 'min:1'],
+            'transaction_items.*.unit_price' => ['required_without:transaction_items.*.quantity', 'nullable', 'numeric', 'min:0'],
             'type' => ['required', 'in:WALK IN,DELIVERY'],
             'payment_method' => ['required_if:type,WALK IN', 'in:CASH,GCASH,BANK TRANSFER'],
             'payment_amount' => ['required_with:payment_method', 'numeric', 'min:0'],
