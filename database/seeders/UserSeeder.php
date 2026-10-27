@@ -14,9 +14,14 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        User::create([
-            'username' => 'admin',
-            'password' => Hash::make('admin'),
-        ]);
+        User::truncate();
+        // Development logins: the password is the same as the username.
+        foreach (['admin', 'cashier', 'rider'] as $role) {
+            User::create([
+                'username' => $role,
+                'password' => Hash::make($role),
+                'role' => $role,
+            ]);
+        }
     }
 }

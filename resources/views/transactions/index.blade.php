@@ -7,7 +7,7 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
         <h1 class="font-display text-2xl font-bold text-teal-900 sm:text-3xl">Transactions</h1>
         <a
-            href="{{ route('transactions.create') }}"
+            href="{{ auth()->user()->isAdmin() ? route('transactions.create') : route('dashboard') }}"
             class="cursor-pointer rounded-lg bg-amber-500 px-4 py-2.5 font-display text-base font-bold leading-tight text-ink shadow-[0_4px_0_0_var(--color-amber-600)] transition hover:bg-amber-400 active:translate-y-[2px] active:shadow-[0_2px_0_0_var(--color-amber-600)]"
         >Create Transaction</a>
     </div>

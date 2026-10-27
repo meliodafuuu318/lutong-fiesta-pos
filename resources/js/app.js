@@ -598,8 +598,7 @@ if (pendingRoot) {
         card.addEventListener('click', (event) => {
             if (event.target.closest('a, button, input, select, textarea')) return;
 
-            const link = card.querySelector('a[href]');
-            if (link) window.location.href = link.href;
+            if (card.dataset.href) window.location.href = card.dataset.href;
         });
     });
 
@@ -892,3 +891,297 @@ const transactionRefundDialog = document.getElementById('transaction-refund-dial
         form.querySelector('button[type="submit"]').disabled = true;
     });
 });
+
+// Cashier dashboard: build the receipt from the menu (tap an item, pick a quantity), then create the transaction
+const cashierForm = document.getElementById('cashier-order-form');
+const quantityDialog = document.getElementById('quantity-dialog');
+const cashierConfirmDialog = document.getElementById('create-transaction-confirm-dialog');
+
+if (cashierForm && quantityDialog && cashierConfirmDialog) {
+    [quantityDialog, cashierConfirmDialog].forEach(wireDialog);
+
+    const MAX_QUANTITY = 99;
+    const peso = (cents) => '₱' + (cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const toCents = (value) => Math.round(Number(value) * 100) || 0;
+    const clampQuantity = (value) => Math.min(MAX_QUANTITY, Math.max(1, Math.floor(Number(value)) || 1));
+    const el = (tag, className, text) => {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
+    };
+    const row = (left, right) => {
+        const line = el('div', 'flex items-start justify-between gap-2');
+        line.append(el('p', 'text-ink', left), el('p', 'font-semibold text-ink', right));
+        return line;
+    };
+
+    // The menu, and the receipt: daily item id => quantity
+    const picks = [...cashierForm.querySelectorAll('[data-pick-item]')];
+    const menu = new Map(picks.map((button) => [button.dataset.id, {
+        id: button.dataset.id,
+        name: button.dataset.name,
+        price: toCents(button.dataset.price),
+        button,
+    }]));
+    const lines = new Map();
+
+    const typeRadios = [...cashierForm.querySelectorAll('input[name="type"]')];
+    const sections = [...cashierForm.querySelectorAll('[data-section]')];
+    const { payment_method: methodField, payment_amount: amountField, address: addressField } = cashierForm.elements;
+    const lineInputs = cashierForm.querySelector('[data-line-inputs]');
+    const itemsError = cashierForm.querySelector('[data-items-error]');
+    const receipt = {
+        empty: cashierForm.querySelector('[data-receipt-empty]'),
+        items: cashierForm.querySelector('[data-receipt-items]'),
+        totals: document.querySelectorAll('[data-receipt-total]'),
+        count: document.querySelector('[data-receipt-count]'),
+        payment: cashierForm.querySelector('[data-receipt-payment]'),
+        method: cashierForm.querySelector('[data-receipt-method]'),
+        amount: cashierForm.querySelector('[data-receipt-amount]'),
+        diff: cashierForm.querySelector('[data-receipt-diff]'),
+        diffLabel: cashierForm.querySelector('[data-receipt-diff-label]'),
+        diffValue: cashierForm.querySelector('[data-receipt-diff-value]'),
+        delivery: cashierForm.querySelector('[data-receipt-delivery]'),
+        address: cashierForm.querySelector('[data-receipt-address]'),
+    };
+
+    const currentType = () => typeRadios.find((radio) => radio.checked)?.value ?? 'WALK IN';
+    const receiptLines = () => [...lines].map(([id, quantity]) => ({ ...menu.get(id), quantity }));
+    const totalOf = (list) => list.reduce((sum, line) => sum + line.price * line.quantity, 0);
+
+    // Paid vs total: change when it's more, what's still owed when it's less
+    const paymentDiff = (total) => {
+        if (amountField.value === '') return null;
+        const paid = toCents(amountField.value);
+        return paid >= total
+            ? { label: 'Change', value: peso(paid - total) }
+            : { label: 'Balance Owed', value: peso(total - paid) };
+    };
+
+    const hidden = (name, value) => {
+        const input = el('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        return input;
+    };
+
+    const render = () => {
+        const list = receiptLines();
+        const total = totalOf(list);
+        const type = currentType();
+        const itemCount = list.reduce((sum, line) => sum + line.quantity, 0);
+
+        // Receipt lines: tap the name to change the quantity, × to take it off
+        receipt.empty.hidden = list.length > 0;
+        receipt.items.replaceChildren(...list.map((line) => {
+            const item = el('li', 'flex items-start gap-2');
+
+            const edit = el('button', 'min-w-0 flex-1 cursor-pointer rounded text-left hover:bg-cream-100');
+            edit.type = 'button';
+            edit.setAttribute('aria-label', `Change quantity of ${line.name}`);
+            edit.addEventListener('click', () => openQuantity(line.id, 'edit'));
+            edit.append(
+                el('span', 'block break-words text-sm text-ink', `x${line.quantity} ${line.name}`),
+                el('span', 'block text-xs text-ink-soft', `${peso(line.price)} each`),
+            );
+
+            const remove = el('button', 'flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-lg font-bold leading-none text-ink-soft hover:bg-danger/10 hover:text-danger', '×');
+            remove.type = 'button';
+            remove.setAttribute('aria-label', `Remove ${line.name}`);
+            remove.addEventListener('click', () => {
+                lines.delete(line.id);
+                render();
+            });
+
+            item.append(edit, el('p', 'text-sm font-semibold text-ink', peso(line.price * line.quantity)), remove);
+            return item;
+        }));
+
+        // What gets sent: transaction_items[id][daily_item_id] and [quantity]
+        lineInputs.replaceChildren(...list.flatMap((line) => [
+            hidden(`transaction_items[${line.id}][daily_item_id]`, line.id),
+            hidden(`transaction_items[${line.id}][quantity]`, line.quantity),
+        ]));
+
+        // Menu cards show how many are on the receipt
+        menu.forEach(({ id, button }) => {
+            const quantity = lines.get(id) ?? 0;
+            const badge = button.querySelector('[data-line-badge]');
+            button.dataset.selected = String(quantity > 0);
+            badge.hidden = quantity === 0;
+            badge.textContent = quantity;
+        });
+
+        receipt.totals.forEach((node) => (node.textContent = peso(total)));
+        if (receipt.count) receipt.count.textContent = itemCount === 0 ? 'No items' : `${itemCount} ${itemCount === 1 ? 'item' : 'items'}`;
+
+        receipt.payment.hidden = type !== 'WALK IN';
+        receipt.delivery.hidden = type !== 'DELIVERY';
+
+        if (type === 'WALK IN') {
+            receipt.method.textContent = methodField.selectedOptions[0]?.textContent ?? '';
+            receipt.amount.textContent = amountField.value === '' ? '—' : peso(toCents(amountField.value));
+
+            const diff = paymentDiff(total);
+            receipt.diff.hidden = diff === null;
+            if (diff) {
+                receipt.diffLabel.textContent = diff.label;
+                receipt.diffValue.textContent = diff.value;
+            }
+        } else {
+            receipt.address.textContent = addressField.value.trim() || '—';
+        }
+    };
+
+    // Only the fields for the chosen type are shown and sent
+    const applyType = () => {
+        const type = currentType();
+
+        sections.forEach((section) => {
+            const active = section.dataset.section === type;
+            section.hidden = !active;
+            section.querySelectorAll('input, select, textarea').forEach((control) => (control.disabled = !active));
+        });
+
+        render();
+    };
+
+    // Quantity dialog: 'add' puts more of an item on the receipt, 'edit' sets the quantity of a line
+    const quantityInput = quantityDialog.querySelector('[data-quantity-input]');
+    const quantityTotal = quantityDialog.querySelector('[data-quantity-total]');
+    const quantityExisting = quantityDialog.querySelector('[data-quantity-existing]');
+    const quantityConfirm = quantityDialog.querySelector('[data-quantity-confirm]');
+    let quantityTarget = null;
+
+    const updateQuantityTotal = () => {
+        quantityTotal.textContent = peso(quantityTarget.item.price * clampQuantity(quantityInput.value));
+    };
+
+    function openQuantity(id, mode) {
+        const item = menu.get(id);
+        const existing = lines.get(id) ?? 0;
+        quantityTarget = { item, mode };
+
+        quantityDialog.querySelector('[data-quantity-name]').textContent = item.name;
+        quantityDialog.querySelector('[data-quantity-price]').textContent = `${peso(item.price)} each`;
+        quantityConfirm.textContent = mode === 'edit' ? 'Update Receipt' : 'Add to Receipt';
+        quantityExisting.hidden = mode === 'edit' || existing === 0;
+        quantityExisting.textContent = `Already on the receipt: ${existing}`;
+        quantityInput.value = mode === 'edit' ? existing : 1;
+
+        updateQuantityTotal();
+        quantityDialog.showModal();
+        quantityInput.select();
+    }
+
+    const confirmQuantity = () => {
+        const quantity = clampQuantity(quantityInput.value);
+        const { item, mode } = quantityTarget;
+
+        lines.set(item.id, mode === 'edit' ? quantity : Math.min(MAX_QUANTITY, (lines.get(item.id) ?? 0) + quantity));
+        itemsError.hidden = true;
+        quantityDialog.close();
+        render();
+    };
+
+    picks.forEach((button) => button.addEventListener('click', () => openQuantity(button.dataset.id, 'add')));
+
+    const stepQuantity = (step) => {
+        quantityInput.value = clampQuantity((Number(quantityInput.value) || 1) + step);
+        updateQuantityTotal();
+    };
+
+    quantityDialog.querySelector('[data-quantity-minus]').addEventListener('click', () => stepQuantity(-1));
+    quantityDialog.querySelector('[data-quantity-plus]').addEventListener('click', () => stepQuantity(1));
+    quantityInput.addEventListener('input', updateQuantityTotal);
+    quantityInput.addEventListener('blur', () => {
+        quantityInput.value = clampQuantity(quantityInput.value);
+        updateQuantityTotal();
+    });
+    quantityInput.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        confirmQuantity();
+    });
+    quantityConfirm.addEventListener('click', confirmQuantity);
+
+    // Order details
+    typeRadios.forEach((radio) => radio.addEventListener('change', applyType));
+    [methodField, amountField, addressField].forEach((control) => {
+        control.addEventListener('input', render);
+        control.addEventListener('change', render);
+    });
+
+    cashierForm.querySelector('[data-use-total]').addEventListener('click', () => {
+        amountField.value = (totalOf(receiptLines()) / 100).toFixed(2);
+        render();
+    });
+
+    // Creating the transaction asks for confirmation first
+    cashierForm.addEventListener('submit', (event) => {
+        if (cashierForm.dataset.confirmed) return;
+
+        event.preventDefault();
+
+        const list = receiptLines();
+        if (list.length === 0) {
+            itemsError.textContent = 'Add at least one item to the transaction.';
+            itemsError.hidden = false;
+            itemsError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+
+        const dialog = cashierConfirmDialog;
+        const type = currentType();
+        const total = totalOf(list);
+
+        dialog.querySelector('[data-confirm-type]').textContent = type === 'WALK IN' ? 'Walk In' : 'Delivery';
+        dialog.querySelector('[data-confirm-items]').replaceChildren(...list.map((line) => row(`x${line.quantity} ${line.name}`, peso(line.price * line.quantity))));
+        dialog.querySelector('[data-confirm-total]').textContent = peso(total);
+
+        const payment = dialog.querySelector('[data-confirm-payment]');
+        const delivery = dialog.querySelector('[data-confirm-delivery]');
+        payment.hidden = type !== 'WALK IN';
+        delivery.hidden = type !== 'DELIVERY';
+
+        if (type === 'WALK IN') {
+            const diff = paymentDiff(total);
+            dialog.querySelector('[data-confirm-method]').textContent = methodField.selectedOptions[0].textContent;
+            dialog.querySelector('[data-confirm-amount]').textContent = peso(toCents(amountField.value));
+            dialog.querySelector('[data-confirm-diff-label]').textContent = diff.label;
+            dialog.querySelector('[data-confirm-diff-value]').textContent = diff.value;
+        } else {
+            dialog.querySelector('[data-confirm-address]').textContent = addressField.value.trim();
+        }
+
+        dialog.showModal();
+    });
+
+    const createConfirm = cashierConfirmDialog.querySelector('[data-create-transaction-confirm]');
+
+    createConfirm.addEventListener('click', () => {
+        createConfirm.disabled = true;
+        cashierForm.dataset.confirmed = '1';
+        cashierForm.requestSubmit();
+    });
+
+    // A back/forward trip must not leave the form half-confirmed
+    window.addEventListener('pageshow', (event) => {
+        if (!event.persisted) return;
+        delete cashierForm.dataset.confirmed;
+        createConfirm.disabled = false;
+    });
+
+    // Start from whatever the server sent back (validation errors) or an empty receipt
+    try {
+        Object.entries(JSON.parse(cashierForm.dataset.initialLines || '{}')).forEach(([id, quantity]) => {
+            if (menu.has(id)) lines.set(id, clampQuantity(quantity));
+        });
+    } catch {
+        // No usable saved lines: start empty
+    }
+
+    applyType();
+}

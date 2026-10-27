@@ -9,6 +9,7 @@ use App\Http\Requests\Transaction\WebStoreTransactionRequest;
 use App\Models\Category;
 use App\Models\DailyItem;
 use App\Models\Transaction;
+use App\Services\MenuService;
 use App\Services\TransactionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -62,18 +63,9 @@ class TransactionController extends Controller
         return view('transactions.index', compact('transactions', 'search', 'type', 'dateFrom', 'dateTo', 'sortBy', 'sortOrder'));
     }
 
-    public function create(): View
+    public function create(MenuService $menu): View
     {
-        // Today's menu, by category. Sold out items are listed too, but can't be picked.
-        $menuByCategory = DailyItem::todayMenu()
-            ->with('item')
-            ->get()
-            ->sortBy(fn (DailyItem $dailyItem) => $dailyItem->item->name)
-            ->groupBy(fn (DailyItem $dailyItem) => $dailyItem->item->category_id);
-
-        $categories = Category::whereIn('id', $menuByCategory->keys())
-            ->orderBy('id')
-            ->get();
+        ['categories' => $categories, 'menuByCategory' => $menuByCategory] = $menu->today();
 
         return view('transactions.create', compact('categories', 'menuByCategory'));
     }
@@ -114,6 +106,8 @@ class TransactionController extends Controller
 
     public function addPayment(WebAddPaymentRequest $request, Transaction $transaction, TransactionService $transactions): RedirectResponse
     {
+        $this->ensureRiderHandlesDeliveriesOnly($transaction);
+
         try {
             $transactions->addPayment(
                 $transaction,
@@ -142,6 +136,8 @@ class TransactionController extends Controller
 
     public function markDelivered(Transaction $transaction, TransactionService $transactions): RedirectResponse
     {
+        $this->ensureRiderHandlesDeliveriesOnly($transaction);
+
         try {
             $transactions->markDelivered($transaction);
         } catch (TransactionException $e) {
@@ -191,5 +187,11 @@ class TransactionController extends Controller
     private function backToPendingOrders(): RedirectResponse
     {
         return redirect()->to(route('dashboard') . '#tab-pending');
+    }
+
+    /** Walk in orders aren't a rider's business. */
+    private function ensureRiderHandlesDeliveriesOnly(Transaction $transaction): void
+    {
+        abort_if(auth()->user()->isRider() && $transaction->type !== 'DELIVERY', 403, "You don't have access to this transaction.");
     }
 }

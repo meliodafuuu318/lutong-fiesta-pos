@@ -7,8 +7,9 @@
     $deliveryCompleted = $transaction->type === 'DELIVERY'
         ? $transaction->delivery?->status === 'DELIVERED'
         : $transaction->status === 'COMPLETED';
-    $canCancel = ! $transaction->isVoid() && ! $deliveryCompleted;
-    $canRefund = ! $transaction->isVoid() && $deliveryCompleted;
+    $isAdmin = auth()->user()->isAdmin();
+    $canCancel = $isAdmin && ! $transaction->isVoid() && ! $deliveryCompleted;
+    $canRefund = $isAdmin && ! $transaction->isVoid() && $deliveryCompleted;
 @endphp
 <div class="w-full">
     <div class="flex items-center gap-3">
