@@ -64,6 +64,20 @@
                     @enderror
                 </div>
 
+                <div>
+                    <label for="remember" class="flex cursor-pointer items-start gap-3">
+                        <input
+                            id="remember" name="remember" type="checkbox" value="1"
+                            @checked(old('remember'))
+                            class="mt-0.5 size-5 shrink-0 cursor-pointer rounded border-2 border-cream-200 accent-teal-700"
+                        >
+                        <span>
+                            <span class="block text-sm font-bold text-ink">Keep me signed in</span>
+                            <span class="block text-sm text-ink-soft">Stay signed in on this device. Only use this on your own device.</span>
+                        </span>
+                    </label>
+                </div>
+
                 <button
                     type="submit"
                     class="w-full cursor-pointer rounded-lg bg-amber-500 px-4 py-3 font-display text-lg font-bold text-ink shadow-[0_4px_0_0_var(--color-amber-600)] transition hover:bg-amber-400 active:translate-y-[2px] active:shadow-[0_2px_0_0_var(--color-amber-600)]"

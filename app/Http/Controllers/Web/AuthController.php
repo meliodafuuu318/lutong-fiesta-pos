@@ -19,7 +19,9 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request): RedirectResponse
     {
-        if (! Auth::attempt($request->only('username', 'password'))) {
+        // "Keep me signed in" sets a long-lived remember cookie, so the user is signed
+        // straight back in when the session expires.
+        if (! Auth::attempt($request->only('username', 'password'), $request->boolean('remember'))) {
             throw ValidationException::withMessages([
                 'username' => 'Username or password is incorrect.',
             ]);
