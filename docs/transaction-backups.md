@@ -106,12 +106,16 @@ Laravel's scheduler (`schedule:run`) doesn't run by itself on Vercel, so the sch
 job, in `vercel.json`:
 
 ```json
-"crons": [{ "path": "/api/cron/transaction-backup", "schedule": "0 15 * * *" }]
+"crons": [{ "path": "/cron/transaction-backup", "schedule": "0 15 * * *" }]
 ```
 
 * Vercel Cron schedules are in **UTC**: 15:00 UTC is 23:00 in Manila (no daylight saving).
+* The path is `/cron/...` and **not** under `/api` on purpose. On Vercel the PHP function is the file
+  `api/index.php`, so Laravel treats `/api` as the folder of the front controller and strips it from the
+  URL: any `/api/...` request is matched without the prefix and returns a 404. (An early version used
+  `/api/cron/transaction-backup` and Vercel Cron got a 404.)
 * Vercel calls the path on the **production** deployment with `GET` and, when the `CRON_SECRET`
-  environment variable exists, adds `Authorization: Bearer <CRON_SECRET>`. The route (`api/cron/...`,
+  environment variable exists, adds `Authorization: Bearer <CRON_SECRET>`. The route (`routes/cron.php`,
   middleware `VerifyCronSecret`) compares it in constant time. It answers **401** for a missing or
   wrong token, and **503** if the secret isn't set or is shorter than 32 characters (it never opens
   up when misconfigured). The secret is only read from the header, never from the URL, and is not logged.
@@ -127,7 +131,7 @@ job, in `vercel.json`:
 1. Add the environment variables above to the Production environment, with `MAIL_*` pointing at a
    working SMTP account.
 2. Deploy to production (crons only exist on production deployments).
-3. Project → Settings → Cron Jobs: confirm `/api/cron/transaction-backup` at `0 15 * * *` is listed.
+3. Project → Settings → Cron Jobs: confirm `/cron/transaction-backup` at `0 15 * * *` is listed.
 4. Trigger it once now (see below) and check the email arrives.
 5. Check the next morning that the nightly email arrived.
 
@@ -151,7 +155,7 @@ On Vercel there is no shell, so trigger it through the endpoint. Keep the secret
 history by reading it from an environment variable:
 
 ```bash
-curl -i -H "Authorization: Bearer $CRON_SECRET" https://<your-production-domain>/api/cron/transaction-backup
+curl -i -H "Authorization: Bearer $CRON_SECRET" https://<your-production-domain>/cron/transaction-backup
 ```
 
 The Cron Jobs page in the Vercel dashboard may also offer a way to run the job (depending on your plan).

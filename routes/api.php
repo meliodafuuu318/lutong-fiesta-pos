@@ -8,17 +8,10 @@ use App\Http\Controllers\{
     DailyItemController,
     TransactionController,
     DashboardController,
-    ExpenseController,
-    TransactionBackupCronController
+    ExpenseController
 };
 
 Route::name('api.')->group(function () {
-    // Started once a day by Vercel Cron (see vercel.json). Not a user endpoint: it only
-    // answers requests that carry the CRON_SECRET as a bearer token.
-    Route::match(['get', 'post'], 'cron/transaction-backup', TransactionBackupCronController::class)
-        ->middleware('cron.secret')
-        ->name('cron.transaction-backup');
-
     Route::post('auth/login', [AuthController::class, 'login'])->name('auth.login');
 
     Route::group(['middleware' => 'auth:sanctum'], function () {

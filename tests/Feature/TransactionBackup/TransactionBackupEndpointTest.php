@@ -9,7 +9,7 @@ use Tests\Helpers\BackupData;
 
 uses(RefreshDatabase::class);
 
-const CRON_URL = '/api/cron/transaction-backup';
+const CRON_URL = '/cron/transaction-backup';
 
 beforeEach(function () {
     Mail::fake();
@@ -127,4 +127,16 @@ it('has only placeholders in .env.example', function () {
     expect($example)->toMatch('/^TRANSACTION_BACKUP_EMAIL=$/m');
     expect($example)->toMatch('/^CRON_SECRET=$/m');
     expect($example)->toMatch('/^TRANSACTION_BACKUP_MAX_ATTACHMENT_MB=15$/m');
+});
+
+it('is not under /api, where the Vercel function layout makes Laravel lose the prefix', function () {
+    expect(route('cron.transaction-backup', absolute: false))->toBe(CRON_URL);
+    expect(CRON_URL)->not->toStartWith('/api');
+
+    // On Vercel the front controller is api/index.php. Laravel then reads "/api/..." as the directory
+    // of that script and drops it from the path, so a path under /api never matches its route.
+    $viaVercel = ['SCRIPT_NAME' => '/api/index.php', 'PHP_SELF' => '/api/index.php', 'SCRIPT_FILENAME' => base_path('api/index.php')];
+
+    $this->withServerVariables($viaVercel)->getJson(CRON_URL)->assertUnauthorized();
+    $this->withServerVariables($viaVercel)->withToken($this->secret)->getJson(CRON_URL)->assertOk();
 });
