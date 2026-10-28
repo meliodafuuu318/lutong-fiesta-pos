@@ -78,3 +78,7 @@ php artisan serve
 ```
 
 The API will be available at `http://127.0.0.1:8000`.
+
+## 💾 Daily transaction backups
+
+A complete JSON export of the transaction history is emailed to a recovery mailbox every day at 11:00 PM Manila time. See [docs/transaction-backups.md](docs/transaction-backups.md) for setup, manual runs and recovery.
