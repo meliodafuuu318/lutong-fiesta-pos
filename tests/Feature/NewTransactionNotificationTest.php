@@ -43,16 +43,14 @@ it('notifies everyone with push turned on when an order is created', function ()
     Notification::assertNotSentTo($notSubscribed, NewTransactionNotification::class);
 });
 
-it("doesn't notify the person who took the order", function () {
+it('also notifies the person who took the order, since they may be signed in on another device', function () {
     Notification::fake();
     $cashier = pushUser('cashier');
-    $admin = pushUser('admin');
 
     $this->actingAs($cashier);
     app(TransactionService::class)->create(newOrder());
 
-    Notification::assertNotSentTo($cashier, NewTransactionNotification::class);
-    Notification::assertSentTo($admin, NewTransactionNotification::class);
+    Notification::assertSentTo($cashier, NewTransactionNotification::class);
 });
 
 it('only tells riders about deliveries', function () {

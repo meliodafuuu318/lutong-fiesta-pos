@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Notifications\NewTransactionNotification;
 use App\Traits\Generator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Throwable;
 
@@ -115,8 +116,9 @@ class TransactionService
     }
 
     /**
-     * Push the new order to everyone with notifications turned on, except whoever just took it.
-     * Riders only hear about deliveries (walk ins aren't their business).
+     * Push the new order to everyone with notifications turned on, including whoever just took it
+     * (they may well be signed in on another device). Riders only hear about deliveries (walk ins
+     * aren't their business).
      *
      * Sent right away rather than queued, and never allowed to fail the order: it's already saved.
      */
@@ -125,9 +127,10 @@ class TransactionService
         try {
             $recipients = User::query()
                 ->whereHas('pushSubscriptions')
-                ->when(auth()->id(), fn ($query, $creatorId) => $query->whereKeyNot($creatorId))
                 ->when($transaction->type !== 'DELIVERY', fn ($query) => $query->where('role', '!=', User::ROLE_RIDER))
                 ->get();
+
+            Log::info("Push: new order {$transaction->reference_number}, {$recipients->count()} subscribed user(s) to notify.");
 
             if ($recipients->isNotEmpty()) {
                 Notification::sendNow($recipients, new NewTransactionNotification($transaction));

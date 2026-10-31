@@ -19,9 +19,9 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             CategorySeeder::class,
             ItemSeeder::class,
-            DailyItemSeeder::class,
-            TransactionSeeder::class,
-            ExpenseSeeder::class,
+            // DailyItemSeeder::class,
+            // TransactionSeeder::class,
+            // ExpenseSeeder::class,
         ]);
     }
 }

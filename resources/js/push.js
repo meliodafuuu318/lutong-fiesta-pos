@@ -84,7 +84,11 @@ if (button && publicKey && endpointUrl && supported) {
                 }
             } catch (error) {
                 console.error(error);
-                window.alert("Couldn't change notification settings. Please try again.");
+                window.alert(
+                    error?.name === 'AbortError'
+                        ? "This browser couldn't reach its push service. In Brave, turn on \"Use Google Services for Push Messaging\" at brave://settings/privacy, then restart the browser and try again."
+                        : "Couldn't change notification settings. Please try again.",
+                );
             } finally {
                 render(subscription);
             }
