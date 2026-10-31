@@ -15,6 +15,9 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-dvh antialiased">
+    {{-- Thin bar across the top while a request is being sent or a page is loading --}}
+    <div data-progress hidden role="progressbar" aria-label="Loading" class="page-progress"></div>
+
     @yield('content')
 </body>
 </html>

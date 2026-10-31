@@ -130,7 +130,7 @@
                     <div class="mt-2 space-y-1">
                         @foreach ($transaction->transactionItems as $item)
                             <div class="flex items-start justify-between gap-2 text-sm">
-                                <p class="text-ink">x{{ $item->quantity }} {{ $item->dailyItem?->item?->name ?? 'Item' }}</p>
+                                <p class="text-ink">{{ $item->quantity === null ? '' : 'x' . $item->quantity . ' ' }}{{ $item->dailyItem?->item?->name ?? 'Item' }}{{ $item->quantity === null ? ' (custom)' : '' }}</p>
                                 <p class="font-semibold text-ink">₱{{ number_format($item->subtotal, 2) }}</p>
                             </div>
                         @endforeach
@@ -206,7 +206,12 @@
     if ($transaction->isVoid()) $rcp[] = '*** ' . strtoupper($transaction->status) . ' ***';
     $rcp[] = $rcpRule;
     foreach ($transaction->transactionItems as $it) {
-        $rcp[] = $rcpLine($it->quantity . 'x ' . ($it->dailyItem?->item?->name ?? 'Item'), $rcpMoney($it->subtotal));
+        $rcp[] = $rcpLine(
+            $it->quantity === null
+                ? ($it->dailyItem?->item?->name ?? 'Item') . ' (custom)'
+                : $it->quantity . 'x ' . ($it->dailyItem?->item?->name ?? 'Item'),
+            $rcpMoney($it->subtotal),
+        );
     }
     $rcp[] = $rcpRule;
     $rcp[] = $rcpLine('TOTAL', $rcpMoney($transaction->total));

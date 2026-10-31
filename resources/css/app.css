@@ -68,3 +68,49 @@ body:has(dialog[open]) {
         font-size: 16px;
     }
 }
+
+/* Loading: a bar across the top of the page, and busy buttons */
+.page-progress {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 70;
+    height: 4px;
+    overflow: hidden;
+    pointer-events: none;
+    background-color: rgb(225 156 55 / 0.25);
+}
+
+.page-progress::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 40%;
+    border-radius: 9999px;
+    background-color: var(--color-amber-500);
+    animation: page-progress-slide 1.1s ease-in-out infinite;
+}
+
+@keyframes page-progress-slide {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(250%); }
+}
+
+button[data-loading] {
+    cursor: progress;
+    opacity: 0.85;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .page-progress::before {
+        width: 100%;
+        animation: page-progress-pulse 1.6s ease-in-out infinite;
+    }
+
+    @keyframes page-progress-pulse {
+        50% { opacity: 0.35; }
+    }
+
+    button[data-loading] svg {
+        animation-duration: 3s;
+    }
+}

@@ -148,8 +148,13 @@
                                     @foreach ($lines as $line)
                                         <li class="flex items-start justify-between gap-3">
                                             <p class="min-w-0 break-words font-semibold text-ink">
-                                                <span class="font-display font-bold text-teal-700">{{ $line->quantity ?? 1 }}×</span>
+                                                @if ($line->quantity !== null)
+                                                    <span class="font-display font-bold text-teal-700">{{ $line->quantity }}×</span>
+                                                @endif
                                                 {{ $line->dailyItem?->item?->name ?? 'Item no longer available' }}
+                                                @if ($line->quantity === null)
+                                                    <span class="text-sm font-semibold text-ink-soft">(custom serving)</span>
+                                                @endif
                                             </p>
                                             <p class="shrink-0 font-semibold text-ink-soft">{{ $peso($line->subtotal) }}</p>
                                         </li>
