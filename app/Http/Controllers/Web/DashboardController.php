@@ -31,7 +31,9 @@ class DashboardController extends Controller
         $weeklyExpenses = $dashboard->weeklyExpenses();
         $monthlyExpenses = $dashboard->monthlyExpenses();
         $week = $dashboard->weekBreakdown();
-        $pendingOrders = $dashboard->pendingOrders();
+        // The items modal on each card is rendered with the page, so opening it needs no request.
+        $pendingOrders = $dashboard->pendingOrders()
+            ->load('transactionItems.dailyItem.item');
 
         $pendingDeliveryCount = $pendingOrders
             ->filter(fn (Transaction $order) => $order->delivery?->status === 'PENDING')

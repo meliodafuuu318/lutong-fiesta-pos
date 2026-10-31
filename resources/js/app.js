@@ -501,7 +501,7 @@ if (pendingRoot) {
 
     cards.forEach((card) => {
         card.addEventListener('click', (event) => {
-            if (event.target.closest('a, button, input, select, textarea')) return;
+            if (event.target.closest('a, button, input, select, textarea, dialog')) return;
 
             if (card.dataset.href) window.location.href = card.dataset.href;
         });
@@ -520,7 +520,7 @@ if (pendingRoot) {
 
     chips.forEach((chip) => chip.addEventListener('click', () => applyFilter(chip.dataset.pendingFilter)));
 
-    // Order items (rider dashboard): the dialog is already in the card, so this never touches the network
+    // Order items (admin and rider dashboards, cashier pending payments): the dialog is already in the card, so this never touches the network
     pendingRoot.querySelectorAll('[data-order-items-dialog]').forEach((dialog) => {
         wireDialog(dialog);
 

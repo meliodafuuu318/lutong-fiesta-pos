@@ -126,6 +126,12 @@
                             </dl>
 
                             <div class="mt-auto grid grid-cols-1 gap-2 pt-4">
+                                <button
+                                    type="button"
+                                    data-order-items-open
+                                    aria-haspopup="dialog"
+                                    class="cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-4 py-3 font-display text-base font-bold leading-tight text-ink transition hover:border-teal-500"
+                                >View Items <span class="text-ink-soft">({{ $order->transactionItems->sum(fn ($line) => $line->quantity ?? 1) }})</span></button>
                                 @if ($paymentPending)
                                     <button
                                         type="button"
@@ -149,6 +155,8 @@
                                     >Mark Delivered</button>
                                 @endif
                             </div>
+
+                            @include('partials.order-items-dialog')
                         </li>
                     @endforeach
                 </ul>
