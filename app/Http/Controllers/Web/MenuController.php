@@ -15,7 +15,7 @@ class MenuController extends Controller
         $menuByCategory = DailyItem::todayMenu()
             ->with('item')
             ->get()
-            ->sortBy(fn (DailyItem $dailyItem) => $dailyItem->item->name)
+            ->sortBy(fn (DailyItem $dailyItem) => [$dailyItem->status === 'SOLD OUT' ? 1 : 0, $dailyItem->item->name])
             ->groupBy(fn (DailyItem $dailyItem) => $dailyItem->item->category_id);
 
         // Only categories that have something on today's menu get a tab.
