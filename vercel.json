@@ -38,6 +38,14 @@
             "dest": "/public/robots.txt"
         },
         {
+            "src": "/sw\\.js",
+            "headers": {
+                "Cache-Control": "public, max-age=0, must-revalidate",
+                "Content-Type": "application/javascript; charset=utf-8"
+            },
+            "dest": "/public/sw.js"
+        },
+        {
             "src": "/(.*)",
             "dest": "/api/index.php"
         }

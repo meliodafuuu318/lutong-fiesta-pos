@@ -6,6 +6,7 @@ use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\ExpenseController;
 use App\Http\Controllers\Web\ItemController;
 use App\Http\Controllers\Web\MenuController;
+use App\Http\Controllers\Web\PushSubscriptionController;
 use App\Http\Controllers\Web\TransactionController;
 use Illuminate\Support\Facades\Route;
 
@@ -24,6 +25,10 @@ Route::middleware('auth')->group(function () {
     // Every role: the dashboard (it looks different for each role) and signing out.
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+    // Every role: turning push notifications on or off for this browser.
+    Route::post('/push-subscriptions', [PushSubscriptionController::class, 'store'])->name('push-subscriptions.store');
+    Route::delete('/push-subscriptions', [PushSubscriptionController::class, 'destroy'])->name('push-subscriptions.destroy');
 
     // Admin and cashier: the transaction list, its details, taking an order, cancelling one
     // (a duplicate entry, say) and the orders that still have to be paid for.

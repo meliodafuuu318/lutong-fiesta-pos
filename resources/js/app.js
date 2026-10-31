@@ -1,3 +1,5 @@
+import './push';
+
 // Show / hide password
 document.querySelectorAll('[data-toggle-password]').forEach((button) => {
     const input = document.getElementById(button.dataset.togglePassword);

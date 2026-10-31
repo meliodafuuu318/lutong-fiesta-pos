@@ -30,6 +30,20 @@
         </div>
 
         <div class="flex min-w-0 items-center gap-3">
+            {{-- Shown by JS only where the browser can do push; stays hidden otherwise --}}
+            <button
+                type="button"
+                data-push-toggle
+                hidden
+                aria-pressed="false"
+                aria-label="Turn on order notifications"
+                title="Order notifications"
+                class="flex size-11 cursor-pointer items-center justify-center rounded-lg hover:bg-teal-600 focus-visible:outline-cream-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+                <svg class="size-6" data-push-icon-off viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.7 3A6 6 0 0 1 18 8c0 2.6.5 4.4 1.1 5.5M6.3 6.3A6 6 0 0 0 6 8c0 7-3 9-3 9h14"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="m2 2 20 20"/></svg>
+                <svg class="hidden size-6" data-push-icon-on viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            </button>
+
             <span class="hidden truncate text-sm font-bold sm:inline sm:text-base" title="{{ auth()->user()->username }}">{{ auth()->user()->username }}</span>
 
             <form method="POST" action="{{ route('logout') }}">

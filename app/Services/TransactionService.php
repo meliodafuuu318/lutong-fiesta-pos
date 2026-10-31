@@ -8,8 +8,12 @@ use App\Models\Delivery;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\TransactionPayment;
+use App\Models\User;
+use App\Notifications\NewTransactionNotification;
 use App\Traits\Generator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
+use Throwable;
 
 class TransactionService
 {
@@ -28,7 +32,7 @@ class TransactionService
      */
     public function create(array $data): Transaction
     {
-        return DB::transaction(function () use ($data) {
+        $transaction = DB::transaction(function () use ($data) {
             $transaction = Transaction::create([
                 'reference_number' => $this->generateReferenceNumber(),
                 'total' => 0,
@@ -103,6 +107,34 @@ class TransactionService
 
             return $transaction;
         });
+
+        // Only once everything is saved, so nobody is told about an order that was rolled back.
+        $this->notifyCreated($transaction);
+
+        return $transaction;
+    }
+
+    /**
+     * Push the new order to everyone with notifications turned on, except whoever just took it.
+     * Riders only hear about deliveries (walk ins aren't their business).
+     *
+     * Sent right away rather than queued, and never allowed to fail the order: it's already saved.
+     */
+    private function notifyCreated(Transaction $transaction): void
+    {
+        try {
+            $recipients = User::query()
+                ->whereHas('pushSubscriptions')
+                ->when(auth()->id(), fn ($query, $creatorId) => $query->whereKeyNot($creatorId))
+                ->when($transaction->type !== 'DELIVERY', fn ($query) => $query->where('role', '!=', User::ROLE_RIDER))
+                ->get();
+
+            if ($recipients->isNotEmpty()) {
+                Notification::sendNow($recipients, new NewTransactionNotification($transaction));
+            }
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 
     /**
