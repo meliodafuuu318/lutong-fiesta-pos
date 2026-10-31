@@ -10,13 +10,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use NotificationChannels\WebPush\HasPushSubscriptions;
 
 #[Fillable(['username', 'password', 'role'])]
 #[Hidden(['password', 'remember_token', 'created_at', 'updated_at'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasFactory, Notifiable, HasApiTokens, HasPushSubscriptions;
 
     public const ROLE_ADMIN = 'admin';
     public const ROLE_CASHIER = 'cashier';
