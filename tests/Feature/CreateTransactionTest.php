@@ -111,3 +111,36 @@ it('saves an optional note on walk ins and deliveries', function () {
         ->and($delivery->note)->toBe('Call when outside')
         ->and($plain->note)->toBeNull();
 });
+
+it('prices a custom serving by its unit price, with no quantity', function () {
+    $item = todaysItem();
+
+    $transaction = app(TransactionService::class)->create(orderData($item, [
+        'transaction_items' => [['daily_item_id' => $item->id, 'unit_price' => 35.50]],
+        'payment_amount' => 35.50,
+    ]));
+
+    $line = $transaction->transactionItems->first();
+
+    expect($line->quantity)->toBeNull()
+        ->and((float) $line->unit_price)->toBe(35.5)
+        ->and((float) $line->subtotal)->toBe(35.5)
+        ->and((float) $transaction->total)->toBe(35.5)
+        ->and($transaction->payment_status)->toBe('PAID');
+});
+
+it('adds quantity lines and custom servings of the same item into one total', function () {
+    $item = todaysItem();
+
+    $transaction = app(TransactionService::class)->create(orderData($item, [
+        'transaction_items' => [
+            ['daily_item_id' => $item->id, 'quantity' => 2],
+            ['daily_item_id' => $item->id, 'unit_price' => 50],
+        ],
+        'payment_amount' => 250,
+    ]));
+
+    expect($transaction->transactionItems)->toHaveCount(2)
+        ->and((float) $transaction->total)->toBe(250.0)
+        ->and($transaction->payment_status)->toBe('PAID');
+});

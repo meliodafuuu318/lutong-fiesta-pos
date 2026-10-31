@@ -670,7 +670,11 @@ const deleteExpenseDialog = document.getElementById('delete-expense-dialog');
 if (expenseDialog && expenseConfirmDialog) {
     [expenseDialog, expenseConfirmDialog, deleteExpenseDialog].filter(Boolean).forEach(wireDialog);
 
-    const peso = (value) => '₱' + Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    // A negative amount is money coming in: shown with a minus sign
+    const peso = (value) => {
+        const amount = Number(value);
+        return (amount < 0 ? '−' : '') + '₱' + Math.abs(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
 
     const form = expenseDialog.querySelector('[data-expense-form]');
     const amountField = form.elements.amount;
@@ -714,6 +718,8 @@ if (expenseDialog && expenseConfirmDialog) {
         amountField.focus();
     };
 
+    amountField.addEventListener('input', () => amountField.setCustomValidity(''));
+
     document.querySelectorAll('[data-expense-add-open], [data-add-expense]').forEach((button) => {
         button.addEventListener('click', () => openAdd());
     });
@@ -730,8 +736,12 @@ if (expenseDialog && expenseConfirmDialog) {
         }
 
         event.preventDefault();
+
+        // Any amount but zero: negative amounts are money coming in
+        amountField.setCustomValidity(Number(amountField.value) === 0 ? 'Enter an amount other than zero.' : '');
         if (!form.reportValidity()) return;
 
+        expenseConfirmDialog.querySelector('[data-confirm-money-in]').hidden = Number(amountField.value) >= 0;
         expenseConfirmDialog.querySelector('[data-confirm-title]').textContent = editing ? 'Save Changes?' : 'Add Expense?';
         expenseConfirmDialog.querySelector('[data-confirm-verb]').textContent = editing ? 'This expense will be changed to' : 'Record';
         expenseConfirmDialog.querySelector('[data-confirm-amount]').textContent = peso(amountField.value);
@@ -753,7 +763,7 @@ if (expenseDialog && expenseConfirmDialog) {
             button.addEventListener('click', () => {
                 const { url, amount, description, date } = button.dataset;
                 deleteForm.action = url;
-                deleteExpenseDialog.querySelector('[data-delete-expense-amount]').textContent = '₱' + amount;
+                deleteExpenseDialog.querySelector('[data-delete-expense-amount]').textContent = amount;
                 deleteExpenseDialog.querySelector('[data-delete-expense-description]').textContent = description;
                 deleteExpenseDialog.querySelector('[data-delete-expense-date]').textContent = date;
                 deleteExpenseDialog.showModal();

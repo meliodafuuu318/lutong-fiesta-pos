@@ -15,6 +15,10 @@
             'icon' => '<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
         ],
         [
+            'roles' => ['cashier'], 'label' => 'Pending Payments', 'route' => 'pending-payments', 'active' => 'pending-payments',
+            'icon' => '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+        ],
+        [
             'roles' => ['admin', 'cashier'], 'label' => 'Transactions', 'route' => 'transactions.index', 'active' => 'transactions.*',
             'icon' => '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
         ],

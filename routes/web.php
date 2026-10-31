@@ -25,17 +25,24 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    // Admin and cashier: the transaction list, its details, and taking an order.
+    // Admin and cashier: the transaction list, its details, taking an order, cancelling one
+    // (a duplicate entry, say) and the orders that still have to be paid for.
     // (The cashier takes orders from the dashboard.)
     Route::middleware('role:admin,cashier')->group(function () {
         Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
         Route::post('/transactions', [TransactionController::class, 'store'])->name('transactions.store');
         Route::get('/transactions/{transaction}', [TransactionController::class, 'show'])->whereNumber('transaction')->name('transactions.show');
+        Route::patch('/transactions/{transaction}/cancel', [TransactionController::class, 'cancel'])->name('transactions.cancel');
+        Route::get('/pending-payments', [DashboardController::class, 'pendingPayments'])->name('pending-payments');
     });
 
-    // Admin and rider: collecting payments and marking deliveries (the pending orders).
-    Route::middleware('role:admin,rider')->group(function () {
+    // Everyone who collects money: adding a payment to an order.
+    Route::middleware('role:admin,cashier,rider')->group(function () {
         Route::post('/transactions/{transaction}/payments', [TransactionController::class, 'addPayment'])->name('transactions.payments.store');
+    });
+
+    // Admin and rider: marking deliveries (the pending orders).
+    Route::middleware('role:admin,rider')->group(function () {
         Route::patch('/transactions/{transaction}/delivery', [TransactionController::class, 'markDelivered'])->name('transactions.deliver');
     });
 
@@ -48,7 +55,6 @@ Route::middleware('auth')->group(function () {
         Route::patch('/items/{item}/active', [ItemController::class, 'toggleActive'])->name('items.toggle-active');
         Route::delete('/items/{item}', [ItemController::class, 'destroy'])->name('items.destroy');
         Route::get('/transactions/create', [TransactionController::class, 'create'])->name('transactions.create');
-        Route::patch('/transactions/{transaction}/cancel', [TransactionController::class, 'cancel'])->name('transactions.cancel');
         Route::patch('/transactions/{transaction}/refund', [TransactionController::class, 'refund'])->name('transactions.refund');
         Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
         Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.store');

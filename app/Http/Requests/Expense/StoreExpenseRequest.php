@@ -23,7 +23,16 @@ class StoreExpenseRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'amount' => ['required', 'numeric', 'gt:0', 'max:99999999.99'],
+            // Positive: money going out. Negative: money coming in (income from outside the
+            // transactions, or change returned from money that was taken out earlier).
+            'amount' => [
+                'required',
+                'numeric',
+                'between:-99999999.99,99999999.99',
+                fn (string $attribute, mixed $value, \Closure $fail) => (float) $value === 0.0
+                    ? $fail('The amount can\'t be zero.')
+                    : null,
+            ],
             'description' => ['required', 'string', 'max:255'],
         ];
     }

@@ -63,6 +63,20 @@ class DashboardController extends Controller
     }
 
     /**
+     * The orders that still owe money, for the cashier: walk ins with a balance and deliveries
+     * that haven't been paid for. (Deliveries waiting to be delivered are the rider's business.)
+     */
+    public function pendingPayments(DashboardService $dashboard): View
+    {
+        $pendingOrders = $dashboard->pendingPayments()
+            ->sortBy([['transaction_date', 'asc'], ['id', 'asc']])
+            ->values()
+            ->load('transactionItems.dailyItem.item');
+
+        return view('cashier.pending-payments', compact('pendingOrders'));
+    }
+
+    /**
      * The rider sees the pending orders straight away. Only delivery orders: walk in
      * orders aren't something a rider can deliver or collect.
      */

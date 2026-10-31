@@ -16,8 +16,7 @@ class WebStoreExpenseRequest extends StoreExpenseRequest
         return [
             'amount.required' => 'Enter the amount.',
             'amount.numeric' => 'The amount must be a number.',
-            'amount.gt' => 'The amount must be more than zero.',
-            'amount.max' => 'That amount is too large.',
+            'amount.between' => 'That amount is too large.',
             'description.required' => 'Enter a description.',
             'description.max' => 'The description is too long.',
         ];

@@ -6,7 +6,7 @@
 @php
     $pendingCount = $pendingOrders->count();
     $weekMax = max(1, $week->max(fn ($day) => max($day['sales'], $day['payments'], $day['expenses'])));
-    $weekHasData = $week->sum('sales') > 0 || $week->sum('expenses') > 0;
+    $weekHasData = $week->sum('sales') > 0 || $week->sum('expenses') != 0;
     $tabClasses = 'shrink-0 cursor-pointer rounded-full border-2 border-cream-200 bg-cream-50 px-5 py-2 font-bold text-ink hover:border-teal-500 aria-selected:border-teal-700 aria-selected:bg-teal-700 aria-selected:text-cream-50';
     $peso = fn ($amount) => '₱' . number_format((float) $amount, 2);
     $signedPeso = fn ($amount) => ($amount < 0 ? '−' : '') . '₱' . number_format(abs((float) $amount), 2);
@@ -180,7 +180,7 @@
                             </div>
                             <div class="min-w-0">
                                 <dt class="text-xs font-bold uppercase tracking-wide text-ink-soft">Expenses</dt>
-                                <dd class="mt-0.5 break-words font-display text-lg font-bold text-danger sm:text-xl">{{ $peso($period['expenses']) }}</dd>
+                                <dd @class(['mt-0.5 break-words font-display text-lg font-bold sm:text-xl', 'text-danger' => (float) $period['expenses'] >= 0, 'text-teal-700' => (float) $period['expenses'] < 0])>{{ $signedPeso($period['expenses']) }}</dd>
                             </div>
                             <div class="min-w-0">
                                 <dt class="text-xs font-bold uppercase tracking-wide text-ink-soft">Net</dt>
@@ -190,7 +190,7 @@
                     </section>
                 @endforeach
             </div>
-            <p class="mt-2 text-xs font-semibold text-ink-soft">Collected is the total of orders marked paid. Net is collected minus expenses.</p>
+            <p class="mt-2 text-xs font-semibold text-ink-soft">Collected is the total of orders marked paid. Expenses are net of money that came back in (entered as negative amounts), like change or income from outside the orders. Net is collected minus expenses.</p>
 
             <section class="mt-6 rounded-xl border-2 border-cream-200 bg-cream-50" aria-labelledby="week-chart-title">
                 <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b-2 border-cream-200 px-5 py-3">
@@ -207,7 +207,7 @@
                     <div class="px-3 pb-4 pt-6 sm:px-5" aria-hidden="true">
                         <div class="flex h-56 items-end gap-1.5 border-b-2 border-cream-200 sm:gap-3">
                             @foreach ($week as $day)
-                                <div class="flex h-full min-w-0 flex-1 items-end justify-center gap-0.5 sm:gap-1" title="{{ $day['date']->format('D, M j') }}: sales {{ $peso($day['sales']) }}, collected {{ $peso($day['payments']) }}, expenses {{ $peso($day['expenses']) }}">
+                                <div class="flex h-full min-w-0 flex-1 items-end justify-center gap-0.5 sm:gap-1" title="{{ $day['date']->format('D, M j') }}: sales {{ $peso($day['sales']) }}, collected {{ $peso($day['payments']) }}, expenses {{ $signedPeso($day['expenses']) }}">
                                     <div class="w-full max-w-7 rounded-t bg-amber-500" style="height: {{ $day['sales'] > 0 ? max(2, round($day['sales'] / $weekMax * 100, 1)) : 0 }}%"></div>
                                     <div class="w-full max-w-7 rounded-t bg-teal-700" style="height: {{ $day['payments'] > 0 ? max(2, round($day['payments'] / $weekMax * 100, 1)) : 0 }}%"></div>
                                     <div class="w-full max-w-7 rounded-t bg-danger" style="height: {{ $day['expenses'] > 0 ? max(2, round($day['expenses'] / $weekMax * 100, 1)) : 0 }}%"></div>
@@ -254,7 +254,7 @@
                                     <td class="px-4 py-3 font-semibold text-ink">{{ $day['orders'] }}</td>
                                     <td class="whitespace-nowrap px-4 py-3 font-bold text-ink">{{ $peso($day['sales']) }}</td>
                                     <td class="whitespace-nowrap px-4 py-3 font-bold text-teal-700">{{ $peso($day['payments']) }}</td>
-                                    <td class="whitespace-nowrap px-4 py-3 font-bold text-danger">{{ $peso($day['expenses']) }}</td>
+                                    <td @class(['whitespace-nowrap px-4 py-3 font-bold', 'text-danger' => $day['expenses'] >= 0, 'text-teal-700' => $day['expenses'] < 0])>{{ $signedPeso($day['expenses']) }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -264,7 +264,7 @@
                                 <td class="px-4 py-3 font-bold text-ink">{{ $week->sum('orders') }}</td>
                                 <td class="whitespace-nowrap px-4 py-3 font-bold text-ink">{{ $peso($week->sum('sales')) }}</td>
                                 <td class="whitespace-nowrap px-4 py-3 font-bold text-teal-700">{{ $peso($week->sum('payments')) }}</td>
-                                <td class="whitespace-nowrap px-4 py-3 font-bold text-danger">{{ $peso($week->sum('expenses')) }}</td>
+                                <td @class(['whitespace-nowrap px-4 py-3 font-bold', 'text-danger' => $week->sum('expenses') >= 0, 'text-teal-700' => $week->sum('expenses') < 0])>{{ $signedPeso($week->sum('expenses')) }}</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -307,11 +307,12 @@
                 <label for="dashboard-expense-amount" class="block text-sm font-bold">Amount</label>
                 <div class="relative mt-1.5">
                     <span class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-lg font-bold text-ink-soft">₱</span>
-                    <input id="dashboard-expense-amount" name="amount" type="number" inputmode="decimal" step="0.01" min="0.01" required class="w-full rounded-lg border-2 border-cream-200 bg-white py-3 pl-10 pr-4 text-lg font-bold text-ink focus:border-teal-500">
+                    <input id="dashboard-expense-amount" name="amount" type="number" inputmode="decimal" step="0.01" required class="w-full rounded-lg border-2 border-cream-200 bg-white py-3 pl-10 pr-4 text-lg font-bold text-ink focus:border-teal-500">
                 </div>
                 @error('amount', 'expenseForm')
                     <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
                 @enderror
+                <p class="mt-1.5 text-sm text-ink-soft">Use a negative amount for money coming in, like change from money you took out earlier or income from outside the orders.</p>
             </div>
             <div>
                 <label for="dashboard-expense-description" class="block text-sm font-bold">Description</label>
@@ -337,6 +338,7 @@
     <div class="p-5">
         <h2 id="expense-confirm-title" data-confirm-title class="font-display text-2xl font-bold leading-tight text-teal-900">Add Expense?</h2>
         <p class="mt-2 text-ink-soft"><span data-confirm-verb>Record</span> <strong class="text-ink" data-confirm-amount></strong> for <strong class="break-words text-ink" data-confirm-description></strong>?</p>
+        <p data-confirm-money-in hidden class="mt-2 text-sm font-semibold text-teal-700">This is money coming in, so it will be subtracted from your expenses.</p>
         <div class="mt-5 grid grid-cols-2 gap-2">
             <button type="button" data-dialog-close class="cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-4 py-2.5 font-bold hover:border-teal-500">Cancel</button>
             <button type="button" data-expense-confirm class="cursor-pointer rounded-lg bg-amber-500 px-4 py-2.5 font-bold text-ink hover:bg-amber-400 disabled:cursor-wait disabled:opacity-60">Confirm</button>

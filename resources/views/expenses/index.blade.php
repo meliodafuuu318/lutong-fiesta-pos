@@ -7,6 +7,8 @@
     // On phones each row becomes a card: the description is its heading, the rest are label/value rows.
     $labelRow = 'max-md:col-span-2 max-md:flex max-md:items-center max-md:justify-between max-md:gap-3 max-md:border-t max-md:border-cream-200 max-md:px-0 max-md:py-2 max-md:before:text-xs max-md:before:font-bold max-md:before:uppercase max-md:before:tracking-wide max-md:before:text-ink-soft max-md:before:content-[attr(data-label)]';
     $filtered = filled($dateFrom) || filled($dateTo);
+    // Negative amounts are money coming in: shown with a minus sign, in teal instead of red
+    $signedPeso = fn ($amount) => ((float) $amount < 0 ? '−' : '') . '₱' . number_format(abs((float) $amount), 2);
 @endphp
 
 <div class="w-full">
@@ -54,9 +56,10 @@
         </p>
     @else
         <div class="mt-6 flex flex-wrap items-baseline justify-between gap-x-4">
-            <p class="text-sm font-semibold text-ink-soft">{{ $filtered ? 'Total for this date range' : 'Total, all time' }}</p>
-            <p class="font-display text-xl font-bold text-danger">₱{{ number_format((float) $total, 2) }}</p>
+            <p class="text-sm font-semibold text-ink-soft">{{ $filtered ? 'Net total for this date range' : 'Net total, all time' }}</p>
+            <p @class(['font-display text-xl font-bold', 'text-danger' => (float) $total >= 0, 'text-teal-700' => (float) $total < 0])>{{ $signedPeso($total) }}</p>
         </div>
+        <p class="text-xs font-semibold text-ink-soft">Money that came in (shown as negative amounts) is subtracted from what was spent.</p>
 
         <div class="mt-2 rounded-xl border-2 border-cream-200 bg-cream-50 max-md:border-0 max-md:bg-transparent">
             <div class="overflow-x-auto">
@@ -84,7 +87,12 @@
                             <tr class="border-t-2 border-cream-200 hover:bg-cream-100/60 max-md:grid max-md:grid-cols-2 max-md:gap-x-2 max-md:rounded-xl max-md:border-2 max-md:bg-cream-50 max-md:p-4">
                                 <th scope="row" data-label="Date" class="px-3 py-3 font-semibold text-ink lg:px-6 {{ $labelRow }}">{{ $expense->expense_date->format('M j, Y') }}</th>
                                 <td class="break-words px-3 py-3 font-semibold text-ink lg:px-6 max-md:order-first max-md:col-span-2 max-md:block max-md:p-0 max-md:pb-2 max-md:text-left max-md:font-display max-md:text-lg max-md:font-bold">{{ $expense->description }}</td>
-                                <td data-label="Amount" class="break-words px-3 py-3 font-bold text-danger lg:px-6 {{ $labelRow }}">₱{{ number_format((float) $expense->amount, 2) }}</td>
+                                <td data-label="Amount" @class(['break-words px-3 py-3 font-bold lg:px-6', 'text-danger' => (float) $expense->amount > 0, 'text-teal-700' => (float) $expense->amount < 0, $labelRow])>
+                                    {{ $signedPeso($expense->amount) }}
+                                    @if ((float) $expense->amount < 0)
+                                        <span class="ml-1 rounded-full bg-teal-100 px-2 py-0.5 align-middle text-xs font-bold text-teal-900">Money in</span>
+                                    @endif
+                                </td>
                                 <td class="px-3 py-3 lg:px-6 max-md:border-t max-md:border-cream-200 max-md:px-0 max-md:pb-0 max-md:pt-3">
                                     <button
                                         type="button"
@@ -109,7 +117,7 @@
                                         type="button"
                                         data-expense-delete
                                         data-url="{{ route('expenses.destroy', $expense) }}"
-                                        data-amount="{{ number_format((float) $expense->amount, 2) }}"
+                                        data-amount="{{ $signedPeso($expense->amount) }}"
                                         data-description="{{ $expense->description }}"
                                         data-date="{{ $expense->expense_date->format('M j, Y') }}"
                                         aria-label="Delete expense: {{ $expense->description }}"
@@ -198,13 +206,14 @@
                 <div class="relative mt-1.5">
                     <span class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-lg font-bold text-ink-soft">₱</span>
                     <input
-                        id="expense-amount" name="amount" type="number" inputmode="decimal" step="0.01" min="0.01" required
+                        id="expense-amount" name="amount" type="number" inputmode="decimal" step="0.01" required
                         class="w-full rounded-lg border-2 bg-white py-3 pl-10 pr-4 text-lg font-bold text-ink @error('amount', 'expenseForm') border-danger @else border-cream-200 focus:border-teal-500 @enderror"
                     >
                 </div>
                 @error('amount', 'expenseForm')
                     <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
                 @enderror
+                <p class="mt-1.5 text-sm text-ink-soft">Use a negative amount for money coming in, like change from money you took out earlier or income from outside the orders.</p>
             </div>
 
             <div>
@@ -240,6 +249,7 @@
             <strong class="text-ink" data-confirm-amount></strong> for
             <strong class="break-words text-ink" data-confirm-description></strong>?
         </p>
+        <p data-confirm-money-in hidden class="mt-2 text-sm font-semibold text-teal-700">This is money coming in, so it will be subtracted from your expenses.</p>
         <div class="mt-5 grid grid-cols-2 gap-2">
             <button type="button" data-dialog-close class="cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-4 py-2.5 font-bold hover:border-teal-500">Cancel</button>
             <button type="button" data-expense-confirm class="cursor-pointer rounded-lg bg-amber-500 px-4 py-2.5 font-bold text-ink hover:bg-amber-400 disabled:cursor-wait disabled:opacity-60">Confirm</button>

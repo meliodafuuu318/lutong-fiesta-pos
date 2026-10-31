@@ -8,7 +8,7 @@
         ? $transaction->delivery?->status === 'DELIVERED'
         : $transaction->status === 'COMPLETED';
     $isAdmin = auth()->user()->isAdmin();
-    $canCancel = $isAdmin && ! $transaction->isVoid() && ! $deliveryCompleted;
+    $canCancel = ($isAdmin || auth()->user()->isCashier()) && ! $transaction->isVoid() && ! $deliveryCompleted;
     $canRefund = $isAdmin && ! $transaction->isVoid() && $deliveryCompleted;
 @endphp
 <div class="w-full">

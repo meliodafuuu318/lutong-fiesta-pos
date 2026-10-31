@@ -183,9 +183,13 @@ class TransactionController extends Controller
         return route('transactions.index');
     }
 
-    /** Both actions happen on the dashboard's pending orders tab. */
+    /** Both actions happen on the pending orders list: the dashboard's tab, or the cashier's own page. */
     private function backToPendingOrders(): RedirectResponse
     {
+        if (auth()->user()->isCashier()) {
+            return redirect()->route('pending-payments');
+        }
+
         return redirect()->to(route('dashboard') . '#tab-pending');
     }
 

@@ -25,7 +25,8 @@ class ExpenseController extends Controller
             $query->whereDate('expense_date', '<=', $request->date_to);
         }
 
-        // Covers the whole filtered range, not just the current page.
+        // Covers the whole filtered range, not just the current page. Money that came back in
+        // (negative amounts) is subtracted, so this is what was actually spent.
         $total = $query->sum('amount');
 
         $expenses = $query
