@@ -16,11 +16,13 @@ class TransactionService
     use Generator;
 
     /**
-     * Create a transaction with its items, and its delivery or first payment.
+     * Create a transaction with its items, its delivery and its first payment.
      *
      * $data is a validated StoreTransactionRequest: type, transaction_items
-     * (daily_item_id + quantity or unit_price), and address (DELIVERY) or
-     * payment_method and payment_amount (WALK IN). Everything is saved or nothing is.
+     * (daily_item_id + quantity or unit_price), an optional note, address (DELIVERY),
+     * and payment_method and payment_amount (always for WALK IN, optional for a
+     * pre-paid DELIVERY). A payment that covers the total marks it PAID right away.
+     * Everything is saved or nothing is.
      *
      * @throws TransactionException when an item isn't on today's available menu
      */
@@ -33,6 +35,7 @@ class TransactionService
                 'type' => $data['type'],
                 'status' => 'PENDING',
                 'payment_status' => 'PENDING',
+                'note' => filled($data['note'] ?? null) ? trim($data['note']) : null,
                 'transaction_date' => now(),
             ]);
 
@@ -74,20 +77,29 @@ class TransactionService
                 ]);
             }
 
-            if ($data['type'] === 'WALK IN' && isset($data['payment_method'])) {
-                $totalBalance = $transaction->total;
-                $outstandingBalance = $totalBalance - $data['payment_amount'];
+            // A walk in always pays up front; a delivery only when it was pre-paid.
+            $paymentAmount = (float) ($data['payment_amount'] ?? 0);
+            $takesPayment = isset($data['payment_method'], $data['payment_amount'])
+                && ($data['type'] === 'WALK IN' || $paymentAmount > 0);
+
+            if ($takesPayment) {
+                $outstandingBalance = round($totalAmount - $paymentAmount, 2);
 
                 TransactionPayment::create([
                     'transaction_id' => $transaction->id,
                     'payment_method' => $data['payment_method'],
-                    'payment_amount' => $data['payment_amount'],
+                    'payment_amount' => $paymentAmount,
                     'outstanding_balance' => $outstandingBalance,
-                    'total_balance' => $totalBalance,
+                    'total_balance' => $totalAmount,
                 ]);
 
-                $this->syncOverallStatus($transaction);
+                // Paid in full (or more, the rest is change) the moment it's created.
+                if ($outstandingBalance <= 0) {
+                    $transaction->update(['payment_status' => 'PAID']);
+                }
             }
+
+            $this->syncOverallStatus($transaction);
 
             return $transaction;
         });

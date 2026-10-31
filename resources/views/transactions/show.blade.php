@@ -63,6 +63,12 @@
                         <p class="text-xs font-bold uppercase tracking-wide text-ink-soft">Payment Status</p>
                         <div class="mt-1"><x-status-badge :status="$transaction->payment_status" /></div>
                     </div>
+                    @if (filled($transaction->note))
+                        <div class="sm:col-span-2">
+                            <p class="text-xs font-bold uppercase tracking-wide text-ink-soft">Note</p>
+                            <p class="mt-1 whitespace-pre-line break-words text-base font-semibold text-ink">{{ $transaction->note }}</p>
+                        </div>
+                    @endif
                 </div>
             </section>
 

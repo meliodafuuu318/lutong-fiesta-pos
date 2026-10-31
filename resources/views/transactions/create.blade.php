@@ -136,12 +136,29 @@
                 </div>
             </section>
 
-            {{-- Payment (walk in) --}}
-            <section data-section="WALK IN" class="rounded-xl border-2 border-cream-200 bg-cream-50">
+            {{-- Delivery --}}
+            <section data-section="DELIVERY" class="rounded-xl border-2 border-cream-200 bg-cream-50" hidden>
                 <div class="border-b-2 border-cream-200 px-5 py-3">
-                    <h2 class="font-display text-xl font-bold text-teal-900">Payment</h2>
+                    <h2 class="font-display text-xl font-bold text-teal-900">Delivery</h2>
+                </div>
+                <div class="px-5 py-4">
+                    <label for="delivery-address" class="block text-xs font-bold uppercase tracking-wide text-ink-soft">Delivery Address</label>
+                    <textarea
+                        id="delivery-address" name="address" rows="3" maxlength="500" required
+                        class="mt-1 w-full rounded-lg border-2 bg-white px-3 py-2.5 text-base font-semibold text-ink @error('address', 'createTransaction') border-danger @else border-cream-200 focus:border-teal-500 @enderror"
+                    >{{ old('address') }}</textarea>
+                    @error('address', 'createTransaction')
+                        <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
+                    @enderror
+                </div>
+            </section>
+            {{-- Payment: always for a walk in, optional for a delivery that was pre-paid --}}
+            <section class="rounded-xl border-2 border-cream-200 bg-cream-50">
+                <div class="border-b-2 border-cream-200 px-5 py-3">
+                    <h2 class="font-display text-xl font-bold text-teal-900">Payment <span data-payment-optional hidden class="text-base font-semibold text-ink-soft">(optional)</span></h2>
                 </div>
                 <div class="grid grid-cols-1 gap-4 px-5 py-4 sm:grid-cols-2">
+                    <p data-payment-optional hidden class="text-sm text-ink-soft sm:col-span-2">Only fill this in if the customer already paid for the delivery.</p>
                     <div>
                         <label for="payment-method" class="block text-xs font-bold uppercase tracking-wide text-ink-soft">Payment Method</label>
                         <select
@@ -177,21 +194,20 @@
                 </div>
             </section>
 
-            {{-- Delivery --}}
-            <section data-section="DELIVERY" class="rounded-xl border-2 border-cream-200 bg-cream-50" hidden>
+            {{-- Note (walk in and delivery) --}}
+            <section class="rounded-xl border-2 border-cream-200 bg-cream-50">
                 <div class="border-b-2 border-cream-200 px-5 py-3">
-                    <h2 class="font-display text-xl font-bold text-teal-900">Delivery</h2>
+                    <h2 class="font-display text-xl font-bold text-teal-900">Note <span class="text-base font-semibold text-ink-soft">(optional)</span></h2>
                 </div>
                 <div class="px-5 py-4">
-                    <label for="delivery-address" class="block text-xs font-bold uppercase tracking-wide text-ink-soft">Delivery Address</label>
+                    <label for="transaction-note" class="sr-only">Note</label>
                     <textarea
-                        id="delivery-address" name="address" rows="3" maxlength="500" required
-                        class="mt-1 w-full rounded-lg border-2 bg-white px-3 py-2.5 text-base font-semibold text-ink @error('address', 'createTransaction') border-danger @else border-cream-200 focus:border-teal-500 @enderror"
-                    >{{ old('address') }}</textarea>
-                    @error('address', 'createTransaction')
+                        id="transaction-note" name="note" rows="2" maxlength="500"
+                        class="w-full rounded-lg border-2 bg-white px-3 py-2.5 text-base font-semibold text-ink @error('note', 'createTransaction') border-danger @else border-cream-200 focus:border-teal-500 @enderror"
+                    >{{ old('note') }}</textarea>
+                    @error('note', 'createTransaction')
                         <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
                     @enderror
-                    <p class="mt-2 text-sm text-ink-soft">No payment is taken when a delivery is created.</p>
                 </div>
             </section>
         </div>

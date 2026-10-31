@@ -420,7 +420,7 @@ if (transactionForm && transactionConfirmDialog) {
     const cards = [...transactionForm.querySelectorAll('[data-menu-item]')];
     const typeRadios = [...transactionForm.querySelectorAll('input[name="type"]')];
     const sections = [...transactionForm.querySelectorAll('[data-section]')];
-    const { payment_method: methodField, payment_amount: amountField, address: addressField } = transactionForm.elements;
+    const { payment_method: methodField, payment_amount: amountField, address: addressField, note: noteField } = transactionForm.elements;
     const itemsError = transactionForm.querySelector('[data-items-error]');
     const summary = {
         empty: document.querySelector('[data-summary-empty]'),
@@ -437,6 +437,18 @@ if (transactionForm && transactionConfirmDialog) {
     };
 
     const currentType = () => typeRadios.find((radio) => radio.checked)?.value ?? 'WALK IN';
+
+    // A walk in always pays. A delivery only does when it was pre-paid, i.e. an amount is entered.
+    const paymentOptionalHints = [...document.querySelectorAll('[data-payment-optional]')];
+    const isPaying = () => currentType() === 'WALK IN' || amountField.value.trim() !== '';
+    const syncPaymentFields = () => {
+        const walkIn = currentType() === 'WALK IN';
+
+        methodField.required = amountField.required = walkIn;
+        // An unpaid delivery sends no payment at all (a method without an amount is rejected)
+        methodField.disabled = !isPaying();
+        paymentOptionalHints.forEach((hint) => (hint.hidden = walkIn));
+    };
 
     const selectedLines = () => cards
         .map((card) => ({
@@ -466,10 +478,13 @@ if (transactionForm && transactionConfirmDialog) {
         summary.items.replaceChildren(...lines.map((line) => row(`x${line.quantity} ${line.name}`, peso(line.price * line.quantity))));
         summary.totals.forEach((node) => (node.textContent = peso(total)));
 
-        summary.payment.hidden = type !== 'WALK IN';
+        syncPaymentFields();
+        const paying = isPaying();
+
+        summary.payment.hidden = !paying;
         summary.delivery.hidden = type !== 'DELIVERY';
 
-        if (type === 'WALK IN') {
+        if (paying) {
             summary.methodLabel.textContent = methodField.selectedOptions[0]?.textContent ?? '';
             summary.amount.textContent = amountField.value === '' ? '—' : peso(toCents(amountField.value));
 
@@ -479,7 +494,9 @@ if (transactionForm && transactionConfirmDialog) {
                 summary.diffLabel.textContent = diff.label;
                 summary.diffValue.textContent = diff.value;
             }
-        } else {
+        }
+
+        if (type === 'DELIVERY') {
             summary.address.textContent = addressField.value.trim() || '—';
         }
     };
@@ -555,18 +572,25 @@ if (transactionForm && transactionConfirmDialog) {
 
         const payment = dialog.querySelector('[data-confirm-payment]');
         const delivery = dialog.querySelector('[data-confirm-delivery]');
-        payment.hidden = type !== 'WALK IN';
+        const paying = isPaying();
+        payment.hidden = !paying;
         delivery.hidden = type !== 'DELIVERY';
 
-        if (type === 'WALK IN') {
+        if (paying) {
             const diff = paymentDiff(total);
             dialog.querySelector('[data-confirm-method]').textContent = methodField.selectedOptions[0].textContent;
             dialog.querySelector('[data-confirm-amount]').textContent = peso(toCents(amountField.value));
             dialog.querySelector('[data-confirm-diff-label]').textContent = diff.label;
             dialog.querySelector('[data-confirm-diff-value]').textContent = diff.value;
-        } else {
+        }
+
+        if (type === 'DELIVERY') {
             dialog.querySelector('[data-confirm-address]').textContent = addressField.value.trim();
         }
+
+        const note = noteField.value.trim();
+        dialog.querySelector('[data-confirm-note-wrap]').hidden = note === '';
+        dialog.querySelector('[data-confirm-note]').textContent = note;
 
         dialog.showModal();
     });
@@ -614,6 +638,15 @@ if (pendingRoot) {
     };
 
     chips.forEach((chip) => chip.addEventListener('click', () => applyFilter(chip.dataset.pendingFilter)));
+
+    // Order items (rider dashboard): the dialog is already in the card, so this never touches the network
+    pendingRoot.querySelectorAll('[data-order-items-dialog]').forEach((dialog) => {
+        wireDialog(dialog);
+
+        dialog.closest('[data-pending-card]')
+            ?.querySelector('[data-order-items-open]')
+            ?.addEventListener('click', () => dialog.showModal());
+    });
 
     // Add payment
     const paymentDialog = document.getElementById('payment-dialog');
@@ -928,7 +961,7 @@ if (cashierForm && quantityDialog && cashierConfirmDialog) {
 
     const typeRadios = [...cashierForm.querySelectorAll('input[name="type"]')];
     const sections = [...cashierForm.querySelectorAll('[data-section]')];
-    const { payment_method: methodField, payment_amount: amountField, address: addressField } = cashierForm.elements;
+    const { payment_method: methodField, payment_amount: amountField, address: addressField, note: noteField } = cashierForm.elements;
     const lineInputs = cashierForm.querySelector('[data-line-inputs]');
     const itemsError = cashierForm.querySelector('[data-items-error]');
     const receipt = {
@@ -947,6 +980,18 @@ if (cashierForm && quantityDialog && cashierConfirmDialog) {
     };
 
     const currentType = () => typeRadios.find((radio) => radio.checked)?.value ?? 'WALK IN';
+
+    // A walk in always pays. A delivery only does when it was pre-paid, i.e. an amount is entered.
+    const paymentOptionalHints = [...document.querySelectorAll('[data-payment-optional]')];
+    const isPaying = () => currentType() === 'WALK IN' || amountField.value.trim() !== '';
+    const syncPaymentFields = () => {
+        const walkIn = currentType() === 'WALK IN';
+
+        methodField.required = amountField.required = walkIn;
+        // An unpaid delivery sends no payment at all (a method without an amount is rejected)
+        methodField.disabled = !isPaying();
+        paymentOptionalHints.forEach((hint) => (hint.hidden = walkIn));
+    };
     const receiptLines = () => [...lines].map(([id, quantity]) => ({ ...menu.get(id), quantity }));
     const totalOf = (list) => list.reduce((sum, line) => sum + line.price * line.quantity, 0);
 
@@ -1017,10 +1062,13 @@ if (cashierForm && quantityDialog && cashierConfirmDialog) {
         receipt.totals.forEach((node) => (node.textContent = peso(total)));
         if (receipt.count) receipt.count.textContent = itemCount === 0 ? 'No items' : `${itemCount} ${itemCount === 1 ? 'item' : 'items'}`;
 
-        receipt.payment.hidden = type !== 'WALK IN';
+        syncPaymentFields();
+        const paying = isPaying();
+
+        receipt.payment.hidden = !paying;
         receipt.delivery.hidden = type !== 'DELIVERY';
 
-        if (type === 'WALK IN') {
+        if (paying) {
             receipt.method.textContent = methodField.selectedOptions[0]?.textContent ?? '';
             receipt.amount.textContent = amountField.value === '' ? '—' : peso(toCents(amountField.value));
 
@@ -1030,7 +1078,9 @@ if (cashierForm && quantityDialog && cashierConfirmDialog) {
                 receipt.diffLabel.textContent = diff.label;
                 receipt.diffValue.textContent = diff.value;
             }
-        } else {
+        }
+
+        if (type === 'DELIVERY') {
             receipt.address.textContent = addressField.value.trim() || '—';
         }
     };
@@ -1143,18 +1193,25 @@ if (cashierForm && quantityDialog && cashierConfirmDialog) {
 
         const payment = dialog.querySelector('[data-confirm-payment]');
         const delivery = dialog.querySelector('[data-confirm-delivery]');
-        payment.hidden = type !== 'WALK IN';
+        const paying = isPaying();
+        payment.hidden = !paying;
         delivery.hidden = type !== 'DELIVERY';
 
-        if (type === 'WALK IN') {
+        if (paying) {
             const diff = paymentDiff(total);
             dialog.querySelector('[data-confirm-method]').textContent = methodField.selectedOptions[0].textContent;
             dialog.querySelector('[data-confirm-amount]').textContent = peso(toCents(amountField.value));
             dialog.querySelector('[data-confirm-diff-label]').textContent = diff.label;
             dialog.querySelector('[data-confirm-diff-value]').textContent = diff.value;
-        } else {
+        }
+
+        if (type === 'DELIVERY') {
             dialog.querySelector('[data-confirm-address]').textContent = addressField.value.trim();
         }
+
+        const note = noteField.value.trim();
+        dialog.querySelector('[data-confirm-note-wrap]').hidden = note === '';
+        dialog.querySelector('[data-confirm-note]').textContent = note;
 
         dialog.showModal();
     });

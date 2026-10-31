@@ -29,6 +29,10 @@
                 <p class="text-xs font-bold uppercase tracking-wide text-ink-soft">Deliver To</p>
                 <p class="mt-1 break-words text-ink" data-confirm-address></p>
             </div>
+            <div data-confirm-note-wrap hidden>
+                <p class="text-xs font-bold uppercase tracking-wide text-ink-soft">Note</p>
+                <p class="mt-1 break-words text-ink" data-confirm-note></p>
+            </div>
         </div>
 
         <div class="mt-5 grid grid-cols-2 gap-2">

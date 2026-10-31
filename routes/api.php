@@ -22,6 +22,7 @@ Route::name('api.')->group(function () {
         Route::apiResource('items', ItemController::class);
 
         Route::get('daily-items', [DailyItemController::class, 'index'])->name('daily-items.index');
+        Route::get('daily-items/all', [DailyItemController::class, 'tempGetAllDailyItems'])->name('daily-items.all');
         Route::post('daily-items', [DailyItemController::class, 'addDailyItem'])->name('daily-items.add');
         Route::delete('daily-items/{dailyItem}', [DailyItemController::class, 'removeDailyItem'])->name('daily-items.remove');
         Route::put('daily-items/{dailyItem}', [DailyItemController::class, 'updateDailyItem'])->name('daily-items.update');

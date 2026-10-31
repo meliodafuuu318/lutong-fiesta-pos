@@ -133,6 +133,7 @@ class TransactionBackupService
             'status' => $transaction->status,
             'payment_status' => $transaction->payment_status,
             'total' => $transaction->total,
+            'note' => $transaction->note,
             'transaction_date' => $this->iso($transaction->transaction_date),
             'created_at' => $this->iso($transaction->created_at),
             'updated_at' => $this->iso($transaction->updated_at),

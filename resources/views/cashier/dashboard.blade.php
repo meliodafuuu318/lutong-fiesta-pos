@@ -130,8 +130,21 @@
                         @enderror
                     </div>
 
-                    {{-- Walk in: payment --}}
-                    <div data-section="WALK IN" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {{-- Delivery: address --}}
+                    <div data-section="DELIVERY" hidden>
+                        <label for="delivery-address" class="block text-xs font-bold uppercase tracking-wide text-ink-soft">Delivery Address</label>
+                        <textarea
+                            id="delivery-address" name="address" rows="3" maxlength="500" required
+                            class="mt-1 w-full rounded-lg border-2 bg-white px-3 py-2.5 text-base font-semibold text-ink @error('address', 'createTransaction') border-danger @else border-cream-200 focus:border-teal-500 @enderror"
+                        >{{ old('address') }}</textarea>
+                        @error('address', 'createTransaction')
+                            <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    {{-- Payment: always for a walk in, optional for a delivery that was pre-paid --}}
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <p data-payment-optional hidden class="text-sm text-ink-soft sm:col-span-2">Payment is optional. Only fill it in if the customer already paid for the delivery.</p>
                         <div>
                             <label for="payment-method" class="block text-xs font-bold uppercase tracking-wide text-ink-soft">Payment Method</label>
                             <select
@@ -166,17 +179,16 @@
                         </div>
                     </div>
 
-                    {{-- Delivery: address --}}
-                    <div data-section="DELIVERY" hidden>
-                        <label for="delivery-address" class="block text-xs font-bold uppercase tracking-wide text-ink-soft">Delivery Address</label>
+                    {{-- Note (walk in and delivery) --}}
+                    <div>
+                        <label for="transaction-note" class="block text-xs font-bold uppercase tracking-wide text-ink-soft">Note <span class="font-semibold normal-case tracking-normal">(optional)</span></label>
                         <textarea
-                            id="delivery-address" name="address" rows="3" maxlength="500" required
-                            class="mt-1 w-full rounded-lg border-2 bg-white px-3 py-2.5 text-base font-semibold text-ink @error('address', 'createTransaction') border-danger @else border-cream-200 focus:border-teal-500 @enderror"
-                        >{{ old('address') }}</textarea>
-                        @error('address', 'createTransaction')
+                            id="transaction-note" name="note" rows="2" maxlength="500"
+                            class="mt-1 w-full rounded-lg border-2 bg-white px-3 py-2.5 text-base font-semibold text-ink @error('note', 'createTransaction') border-danger @else border-cream-200 focus:border-teal-500 @enderror"
+                        >{{ old('note') }}</textarea>
+                        @error('note', 'createTransaction')
                             <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
                         @enderror
-                        <p class="mt-2 text-sm text-ink-soft">No payment is taken when a delivery is created.</p>
                     </div>
                 </div>
             </section>

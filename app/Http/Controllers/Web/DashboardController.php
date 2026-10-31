@@ -70,7 +70,9 @@ class DashboardController extends Controller
     {
         $pendingOrders = $dashboard->pendingOrders()
             ->where('type', 'DELIVERY')
-            ->values();
+            ->values()
+            // The items modal on each card is rendered with the page, so opening it needs no request.
+            ->load('transactionItems.dailyItem.item');
 
         $pendingDeliveryCount = $pendingOrders
             ->filter(fn (Transaction $order) => $order->delivery?->status === 'PENDING')

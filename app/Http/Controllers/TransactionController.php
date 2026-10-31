@@ -24,6 +24,7 @@ class TransactionController extends Controller
     public function index(IndexTransactionRequest $request) {
         $transactions = Transaction::query()
             ->with('delivery')
+            ->with('transactionItems', 'transactionPayments')
             ->withSum('transactionPayments', 'payment_amount');
 
         if ($request->filled('search')) {

@@ -69,4 +69,9 @@ class DailyItemController extends Controller
 
         return $this->success('Daily item updated successfully', new DailyItemResource($dailyItem), 200);
     }
+
+    public function tempGetAllDailyItems() {
+        $dailyItems = DailyItem::with('item.category')->get();
+        return $this->success('All daily items retrieved successfully', DailyItemResource::collection($dailyItems), 200);
+    }
 }
