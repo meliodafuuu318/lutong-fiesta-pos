@@ -14,7 +14,7 @@ class ItemSeeder extends Seeder
     public function run(): void
     {
         $menu = [
-            'Food' => [
+            'Meals' => [
                 'Chicken Pochero' => 80,
                 'Ginataang Tulingan' => 70,
                 'Ampalaya' => 55,

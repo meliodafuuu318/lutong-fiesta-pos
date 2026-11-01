@@ -10,10 +10,12 @@
     $isAdmin = auth()->user()->isAdmin();
     $canCancel = ($isAdmin || auth()->user()->isCashier()) && ! $transaction->isVoid() && ! $deliveryCompleted;
     $canRefund = $isAdmin && ! $transaction->isVoid() && $deliveryCompleted;
+    // The page the user came from (the list or tab that linked here), never this page or the order form
+    $backUrl = \App\Support\BackUrl::resolve(request('from'), $isAdmin ? route('transactions.index') : route('dashboard'));
 @endphp
 <div class="w-full">
     <div class="flex items-center gap-3">
-        <a href="{{ url()->previous(route('transactions.index')) }}" class="flex size-10 items-center justify-center rounded-lg text-ink-soft hover:bg-cream-100 hover:text-ink">
+        <a href="{{ $backUrl }}" aria-label="Back" class="flex size-10 items-center justify-center rounded-lg text-ink-soft hover:bg-cream-100 hover:text-ink">
             <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
@@ -299,7 +301,7 @@
         <form method="POST" action="{{ route('transactions.cancel', $transaction) }}" class="p-5" data-transaction-action-form>
             @csrf
             @method('PATCH')
-            <input type="hidden" name="return_to" value="{{ url()->previous(route('transactions.index')) }}">
+            <input type="hidden" name="return_to" value="{{ $backUrl }}">
             <h2 class="font-display text-2xl font-bold leading-tight text-teal-900">Cancel Transaction?</h2>
             <p class="mt-2 text-ink-soft">This will cancel <strong class="font-mono text-ink">{{ $transaction->reference_number }}</strong> and mark its payment and delivery as cancelled.</p>
             <div class="mt-5 grid grid-cols-2 gap-2">
@@ -313,7 +315,7 @@
         <form method="POST" action="{{ route('transactions.refund', $transaction) }}" class="p-5" data-transaction-action-form>
             @csrf
             @method('PATCH')
-            <input type="hidden" name="return_to" value="{{ url()->previous(route('transactions.index')) }}">
+            <input type="hidden" name="return_to" value="{{ $backUrl }}">
             <h2 class="font-display text-2xl font-bold leading-tight text-teal-900">Return / Refund?</h2>
             <p class="mt-2 text-ink-soft">This will mark <strong class="font-mono text-ink">{{ $transaction->reference_number }}</strong> as returned/refunded and update its payment and delivery statuses.</p>
             <div class="mt-5 grid grid-cols-2 gap-2">

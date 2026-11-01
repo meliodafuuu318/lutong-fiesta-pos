@@ -84,7 +84,7 @@
                                 class="min-h-12 cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-3 py-2.5 font-display text-base font-bold leading-tight text-ink transition hover:border-teal-500"
                             >Items <span class="text-ink-soft">({{ $itemCount }})</span></button>
                             <a
-                                href="{{ route('transactions.show', $order) }}"
+                                href="{{ route('transactions.show', ['transaction' => $order, 'from' => request()->fullUrl()]) }}"
                                 class="flex min-h-12 items-center justify-center rounded-lg border-2 border-cream-200 bg-white px-3 py-2.5 text-center font-display text-base font-bold leading-tight text-ink transition hover:border-teal-500"
                             >Details</a>
                         </div>

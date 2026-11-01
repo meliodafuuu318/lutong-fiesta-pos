@@ -81,14 +81,14 @@
                         @endphp
                         <li
                             data-pending-card
-                            data-href="{{ route('transactions.show', $order) }}"
+                            data-href="{{ route('transactions.show', ['transaction' => $order, 'from' => route('dashboard') . '#tab-pending']) }}"
                             data-delivery="{{ $deliveryPending ? '1' : '0' }}"
                             data-payment="{{ $paymentPending ? '1' : '0' }}"
                             class="flex cursor-pointer flex-col rounded-xl border-2 border-t-4 border-cream-200 border-t-amber-500 bg-cream-50 p-4 hover:bg-cream-100/60"
                         >
                             <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0">
-                                    <a href="{{ route('transactions.show', $order) }}" class="block truncate font-mono text-sm font-bold text-ink underline decoration-cream-200 underline-offset-4 hover:decoration-teal-500">{{ $order->reference_number }}</a>
+                                    <a href="{{ route('transactions.show', ['transaction' => $order, 'from' => route('dashboard') . '#tab-pending']) }}" class="block truncate font-mono text-sm font-bold text-ink underline decoration-cream-200 underline-offset-4 hover:decoration-teal-500">{{ $order->reference_number }}</a>
                                     <p class="mt-0.5 text-xs font-semibold text-ink-soft">
                                         {{ \Illuminate\Support\Str::title(strtolower($order->type)) }} · {{ $order->transaction_date->diffForHumans() }}
                                     </p>

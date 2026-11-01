@@ -37,8 +37,8 @@ if (shell && menuToggle) {
     });
 }
 
-// Tabs
-let selectTabById = () => {};
+// Tabs: the address bar's #hash names the open tab, so Back/Forward, refresh and shared links all agree
+const tabSelectors = [];
 
 document.querySelectorAll('[data-tabs]').forEach((root) => {
     const tabs = [...root.querySelectorAll('[role="tab"]')];
@@ -53,16 +53,22 @@ document.querySelectorAll('[data-tabs]').forEach((root) => {
         if (focus) tab.focus();
     };
 
-    selectTabById = (id) => {
+    const selectById = (id) => {
         const tab = tabs.find((t) => t.id === id);
         if (tab) select(tab);
     };
 
+    tabSelectors.push(selectById);
+
     // Land on the tab named in the URL hash (e.g. after saving an item)
-    selectTabById(location.hash.slice(1));
+    selectById(location.hash.slice(1));
 
     tabs.forEach((tab, i) => {
-        tab.addEventListener('click', () => select(tab));
+        tab.addEventListener('click', () => {
+            select(tab);
+            // Remember the tab without adding a history entry (Back must not step through tabs)
+            if (location.hash !== `#${tab.id}`) history.replaceState(history.state, '', `#${tab.id}`);
+        });
 
         tab.addEventListener('keydown', (event) => {
             const target = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[event.key];
@@ -72,6 +78,9 @@ document.querySelectorAll('[data-tabs]').forEach((root) => {
         });
     });
 });
+
+// A link to #tab-x on the same page, or Back/Forward between hashes, switches tabs too
+window.addEventListener('hashchange', () => tabSelectors.forEach((selectById) => selectById(location.hash.slice(1))));
 
 // Shared dialog behaviour: close buttons + click on the dimmed backdrop
 function wireDialog(dialog) {
@@ -120,7 +129,12 @@ function showProgress() {
     progressBar.hidden = false;
     // Safety net: if the browser never navigates (a download, a cancelled load) don't leave the bar running
     clearTimeout(progressTimer);
-    progressTimer = setTimeout(hideProgress, 20000);
+    progressTimer = setTimeout(() => {
+        hideProgress();
+        // The request never completed: let the user try again instead of leaving the form locked
+        document.querySelectorAll('form[data-submitting]').forEach((form) => delete form.dataset.submitting);
+        document.querySelectorAll('button[data-loading]').forEach(stopLoading);
+    }, 20000);
 }
 
 function hideProgress() {
@@ -161,6 +175,13 @@ document.addEventListener('submit', (event) => {
     if (event.defaultPrevented || !(form instanceof HTMLFormElement)) return;
     if (form.target === '_blank' || form.hasAttribute('data-no-loading')) return;
 
+    // A second tap while the first request is in flight must not send the form twice
+    if (form.dataset.submitting) {
+        event.preventDefault();
+        return;
+    }
+    form.dataset.submitting = '1';
+
     const buttons = new Set([
         event.submitter,
         ...form.querySelectorAll('button[type="submit"]'),
@@ -195,6 +216,7 @@ window.addEventListener('pageshow', (event) => {
 
     hideProgress();
     document.querySelectorAll('button[data-loading]').forEach(stopLoading);
+    document.querySelectorAll('form[data-submitting]').forEach((form) => delete form.dataset.submitting);
 });
 
 // Edit / remove modal for menu items
@@ -1192,6 +1214,14 @@ if (orderForm && quantityDialog && orderConfirmDialog) {
     createConfirm.addEventListener('click', () => {
         orderForm.dataset.confirmed = '1';
         orderForm.requestSubmit();
+    });
+
+    // Leaving with items on the receipt (Back, a menu link, a swipe) would lose the order: ask first
+    window.addEventListener('beforeunload', (event) => {
+        if (orderForm.dataset.confirmed || lines.size === 0) return;
+
+        event.preventDefault();
+        event.returnValue = '';
     });
 
     // A back/forward trip must not leave the form half-confirmed

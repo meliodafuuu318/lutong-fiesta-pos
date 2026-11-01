@@ -89,7 +89,7 @@ class ItemController extends Controller
         $item->save();
 
         // Stay on the same page of the list, unless the item moved to another category.
-        $base = $categoryChanged ? route('items.index') : url()->previous(route('items.index'));
+        $base = $categoryChanged ? route('items.index') : $this->previousPage();
 
         return redirect()->to($base . '#tab-' . $item->category_id)
             ->with('status', "{$item->name} updated.");
@@ -123,6 +123,12 @@ class ItemController extends Controller
     /** Back to the page the request came from, on the tab the item lives in. */
     private function backToItems(Item $item): RedirectResponse
     {
-        return redirect()->to(url()->previous(route('items.index')) . '#tab-' . $item->category_id);
+        return redirect()->to($this->previousPage() . '#tab-' . $item->category_id);
+    }
+
+    /** The page the request came from, without a tab fragment (a second '#' would break the link). */
+    private function previousPage(): string
+    {
+        return strtok(url()->previous(route('items.index')), '#') ?: route('items.index');
     }
 }

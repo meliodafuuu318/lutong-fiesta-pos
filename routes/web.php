@@ -10,18 +10,14 @@ use App\Http\Controllers\Web\PushSubscriptionController;
 use App\Http\Controllers\Web\TransactionController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return response('Laravel web route works!', 200);
-});
-
-Route::middleware('guest')->group(function () {
+Route::middleware(['no-store', 'guest'])->group(function () {
     Route::get('/', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])
         ->middleware('throttle:5,1')
         ->name('login.attempt');
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['no-store', 'auth'])->group(function () {
     // Every role: the dashboard (it looks different for each role) and signing out.
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');

@@ -11,6 +11,7 @@ use App\Models\DailyItem;
 use App\Models\Transaction;
 use App\Services\MenuService;
 use App\Services\TransactionService;
+use App\Support\BackUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -153,8 +154,11 @@ class TransactionController extends Controller
         try {
             $transactions->cancel($transaction);
         } catch (TransactionException $e) {
-            return redirect()->route('transactions.show', $transaction)
-                ->withErrors(['transaction' => $e->getMessage()]);
+            // Keep the page the user came from, so Back on the details page doesn't point at itself
+            return redirect()->route('transactions.show', [
+                'transaction' => $transaction,
+                'from' => $this->safeReturnUrl($request->input('return_to')),
+            ])->withErrors(['transaction' => $e->getMessage()]);
         }
 
         return redirect()->to($this->safeReturnUrl($request->input('return_to')))
@@ -166,8 +170,11 @@ class TransactionController extends Controller
         try {
             $transactions->refund($transaction);
         } catch (TransactionException $e) {
-            return redirect()->route('transactions.show', $transaction)
-                ->withErrors(['transaction' => $e->getMessage()]);
+            // Keep the page the user came from, so Back on the details page doesn't point at itself
+            return redirect()->route('transactions.show', [
+                'transaction' => $transaction,
+                'from' => $this->safeReturnUrl($request->input('return_to')),
+            ])->withErrors(['transaction' => $e->getMessage()]);
         }
 
         return redirect()->to($this->safeReturnUrl($request->input('return_to')))
@@ -176,11 +183,7 @@ class TransactionController extends Controller
 
     private function safeReturnUrl(mixed $returnTo): string
     {
-        if (is_string($returnTo) && parse_url($returnTo, PHP_URL_HOST) === request()->getHost()) {
-            return $returnTo;
-        }
-
-        return route('transactions.index');
+        return BackUrl::resolve($returnTo, route('transactions.index'));
     }
 
     /** Both actions happen on the pending orders list: the dashboard's tab, or the cashier's own page. */
