@@ -116,6 +116,108 @@ class TransactionService
     }
 
     /**
+     * Change an order that hasn't been paid for, delivered, cancelled or refunded yet: its items,
+     * its delivery address and its note. The type (walk in / delivery) stays as it was taken.
+     *
+     * $data is a validated WebUpdateTransactionRequest: transaction_items (daily_item_id +
+     * quantity or unit_price), a note and, for a DELIVERY, an address.
+     *
+     * An item already on the order keeps the price it was sold at, even if the menu price has
+     * changed since; an item added now must be on the menu of the day the order was taken and
+     * available. Everything is saved or nothing is.
+     *
+     * @throws TransactionException when the order can no longer be edited (no item id), or when an
+     *                              item being added isn't available (with that item's id)
+     */
+    public function update(Transaction $transaction, array $data): Transaction
+    {
+        return DB::transaction(function () use ($transaction, $data) {
+            // Locked so a payment or a delivery can't slip in while the order is being changed.
+            $transaction = Transaction::with(['delivery', 'transactionItems', 'transactionPayments'])
+                ->lockForUpdate()
+                ->findOrFail($transaction->getKey());
+
+            if ($reason = $transaction->editBlockedReason()) {
+                throw new TransactionException($reason);
+            }
+
+            $oldTotal = (float) $transaction->total;
+            $onOrder = $transaction->transactionItems->pluck('daily_item_id')->flip();
+            $quotedPrices = $transaction->transactionItems
+                ->whereNotNull('quantity')
+                ->unique('daily_item_id')
+                ->pluck('unit_price', 'daily_item_id');
+            $menuDate = $transaction->transaction_date->toDateString();
+
+            $lines = [];
+            $totalAmount = 0;
+
+            foreach ($data['transaction_items'] as $item) {
+                $id = (int) $item['daily_item_id'];
+
+                $dailyItem = $onOrder->has($id)
+                    ? DailyItem::find($id)
+                    : DailyItem::whereDate('date', $menuDate)->available()->find($id);
+
+                if (! $dailyItem) {
+                    throw new TransactionException('Daily item not available for item_id: ' . $id, $id);
+                }
+
+                $quantity = $item['quantity'] ?? null;
+                $unitPrice = $quantity === null
+                    ? (float) $item['unit_price']
+                    : (float) ($quotedPrices->get($id) ?? $dailyItem->price);
+                $amount = $unitPrice * ($quantity ?? 1);
+                $totalAmount += $amount;
+
+                $lines[] = [
+                    'transaction_id' => $transaction->id,
+                    'daily_item_id' => $dailyItem->id,
+                    'unit_price' => $unitPrice,
+                    'quantity' => $quantity,
+                    'subtotal' => $amount,
+                ];
+            }
+
+            $transaction->transactionItems()->delete();
+
+            foreach ($lines as $line) {
+                TransactionItem::create($line);
+            }
+
+            $transaction->update([
+                'total' => $totalAmount,
+                'note' => filled($data['note'] ?? null) ? trim($data['note']) : null,
+            ]);
+
+            if ($transaction->type === 'DELIVERY') {
+                $transaction->delivery->update(['address' => $data['address']]);
+            }
+
+            // A payment row with nothing paid (a walk in taken at ₱0) still records the old total.
+            foreach ($transaction->transactionPayments as $payment) {
+                $payment->update([
+                    'total_balance' => $totalAmount,
+                    'outstanding_balance' => round($totalAmount - (float) $payment->payment_amount, 2),
+                ]);
+            }
+
+            $this->syncOverallStatus($transaction);
+
+            Log::info(sprintf(
+                'Transaction %s edited by user %s: total %s -> %s, %d line(s).',
+                $transaction->reference_number,
+                auth()->id() ?? 'n/a',
+                number_format($oldTotal, 2, '.', ''),
+                number_format($totalAmount, 2, '.', ''),
+                count($lines),
+            ));
+
+            return $transaction->refresh();
+        });
+    }
+
+    /**
      * Push the new order to everyone with notifications turned on, including whoever just took it
      * (they may well be signed in on another device). Riders only hear about deliveries (walk ins
      * aren't their business).

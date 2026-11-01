@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Exceptions\TransactionException;
 use App\Http\Requests\Transaction\WebAddPaymentRequest;
 use App\Http\Requests\Transaction\WebStoreTransactionRequest;
+use App\Http\Requests\Transaction\WebUpdateTransactionRequest;
 use App\Models\Category;
 use App\Models\DailyItem;
 use App\Models\Transaction;
@@ -105,6 +106,51 @@ class TransactionController extends Controller
         return view('transactions.show', compact('transaction', 'payments'));
     }
 
+    public function edit(Request $request, Transaction $transaction, MenuService $menu): View|RedirectResponse
+    {
+        $transaction->load(['transactionItems.dailyItem.item', 'transactionPayments', 'delivery']);
+        $from = BackUrl::resolve($request->query('from'), route('transactions.index'));
+
+        if ($reason = $transaction->editBlockedReason()) {
+            return redirect()->route('transactions.show', ['transaction' => $transaction, 'from' => $from])
+                ->withErrors(['order' => $reason]);
+        }
+
+        ['categories' => $categories, 'menuByCategory' => $menuByCategory] = $menu->forDate(
+            $transaction->transaction_date,
+            $transaction->transactionItems->pluck('daily_item_id')->all(),
+        );
+
+        return view('transactions.edit', compact('transaction', 'categories', 'menuByCategory', 'from'));
+    }
+
+    public function update(WebUpdateTransactionRequest $request, Transaction $transaction, TransactionService $transactions): RedirectResponse
+    {
+        $from = BackUrl::resolve($request->input('from'), route('transactions.index'));
+
+        try {
+            $transactions->update($transaction, $request->validated());
+        } catch (TransactionException $e) {
+            // The order can't be edited any more (it was paid or cancelled in the meantime).
+            if ($e->dailyItemId === null) {
+                return redirect()->route('transactions.show', ['transaction' => $transaction, 'from' => $from])
+                    ->withErrors(['order' => $e->getMessage()]);
+            }
+
+            // An item being added isn't available.
+            $name = DailyItem::with('item')->find($e->dailyItemId)?->item?->name;
+
+            return back()->withInput()->withErrors([
+                'transaction' => $name
+                    ? "{$name} isn't available. Remove it and try again."
+                    : $e->getMessage(),
+            ], 'editTransaction');
+        }
+
+        return redirect()->route('transactions.show', ['transaction' => $transaction, 'from' => $from])
+            ->with('status', "Transaction {$transaction->reference_number} updated.");
+    }
+
     public function addPayment(WebAddPaymentRequest $request, Transaction $transaction, TransactionService $transactions): RedirectResponse
     {
         $this->ensureRiderHandlesDeliveriesOnly($transaction);
@@ -158,7 +204,7 @@ class TransactionController extends Controller
             return redirect()->route('transactions.show', [
                 'transaction' => $transaction,
                 'from' => $this->safeReturnUrl($request->input('return_to')),
-            ])->withErrors(['transaction' => $e->getMessage()]);
+            ])->withErrors(['order' => $e->getMessage()]);
         }
 
         return redirect()->to($this->safeReturnUrl($request->input('return_to')))
@@ -174,7 +220,7 @@ class TransactionController extends Controller
             return redirect()->route('transactions.show', [
                 'transaction' => $transaction,
                 'from' => $this->safeReturnUrl($request->input('return_to')),
-            ])->withErrors(['transaction' => $e->getMessage()]);
+            ])->withErrors(['order' => $e->getMessage()]);
         }
 
         return redirect()->to($this->safeReturnUrl($request->input('return_to')))

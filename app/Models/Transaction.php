@@ -57,6 +57,36 @@ class Transaction extends Model
         return in_array($this->status, ['CANCELLED', 'REFUNDED'], true);
     }
 
+    /**
+     * Why this transaction can't be edited any more, or null when it still can.
+     *
+     * An order can be changed only while nothing has happened to it yet: no money taken (not even a
+     * part payment), not delivered, not cancelled, not returned/refunded.
+     */
+    public function editBlockedReason(): ?string {
+        if ($this->isVoid()) {
+            return 'This transaction was cancelled or refunded, so it can\'t be edited.';
+        }
+
+        if ($this->delivery && $this->delivery->status !== 'PENDING') {
+            return 'This order was already delivered, so it can\'t be edited.';
+        }
+
+        if ($this->payment_status === 'PAID' || $this->amountPaid() > 0) {
+            return 'This order already has a payment, so it can\'t be edited.';
+        }
+
+        if ($this->status !== 'PENDING') {
+            return 'This transaction is already completed, so it can\'t be edited.';
+        }
+
+        return null;
+    }
+
+    public function canBeEdited(): bool {
+        return $this->editBlockedReason() === null;
+    }
+
     /** What is still owed: the total minus what has been paid, never below zero. */
     public function outstandingBalance(): float {
         if ($this->isVoid()) {

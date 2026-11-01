@@ -56,6 +56,8 @@ Route::middleware(['no-store', 'auth'])->group(function () {
         Route::patch('/items/{item}/active', [ItemController::class, 'toggleActive'])->name('items.toggle-active');
         Route::delete('/items/{item}', [ItemController::class, 'destroy'])->name('items.destroy');
         Route::get('/transactions/create', [TransactionController::class, 'create'])->name('transactions.create');
+        Route::get('/transactions/{transaction}/edit', [TransactionController::class, 'edit'])->whereNumber('transaction')->name('transactions.edit');
+        Route::put('/transactions/{transaction}', [TransactionController::class, 'update'])->whereNumber('transaction')->name('transactions.update');
         Route::patch('/transactions/{transaction}/refund', [TransactionController::class, 'refund'])->name('transactions.refund');
         Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
         Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.store');

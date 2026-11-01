@@ -874,6 +874,17 @@ if (orderForm && quantityDialog && orderConfirmDialog) {
         price: toCents(button.dataset.price),
         button,
     }]));
+    // Editing an order: items already on it keep the price they were sold at, and the ones that can't be
+    // picked any more (sold out) stay on the receipt, without a card on the menu.
+    const editing = orderForm.dataset.mode === 'edit';
+    const editData = editing ? JSON.parse(orderForm.dataset.edit || '{}') : {};
+    const quoted = new Map(Object.entries(editData.quoted ?? {}).map(([id, price]) => [id, toCents(price)]));
+    (editData.extra ?? []).forEach(({ id, name, price }) => {
+        if (!menu.has(id)) menu.set(id, { id, name, price: toCents(price), button: null });
+    });
+    // What one serving of an item costs on this receipt
+    const unitPrice = (id) => quoted.get(id) ?? menu.get(id).price;
+
     const lines = new Map();
     let nextLineKey = 1;
     const addLine = (line) => {
@@ -906,8 +917,12 @@ if (orderForm && quantityDialog && orderConfirmDialog) {
 
     // A walk in always pays. A delivery only does when it was pre-paid, i.e. an amount is entered.
     const paymentOptionalHints = [...document.querySelectorAll('[data-payment-optional]')];
-    const isPaying = () => currentType() === 'WALK IN' || amountField.value.trim() !== '';
+    // (Editing an order has no payment fields: only unpaid orders can be edited.)
+    const hasPayment = Boolean(methodField && amountField);
+    const isPaying = () => hasPayment && (currentType() === 'WALK IN' || amountField.value.trim() !== '');
     const syncPaymentFields = () => {
+        if (!hasPayment) return;
+
         const walkIn = currentType() === 'WALK IN';
 
         methodField.required = amountField.required = walkIn;
@@ -924,9 +939,9 @@ if (orderForm && quantityDialog && orderConfirmDialog) {
             ...line,
             name: item.name,
             custom,
-            amount: custom ? line.price : item.price * line.quantity,
+            amount: custom ? line.price : unitPrice(line.id) * line.quantity,
             label: custom ? `${item.name} (custom)` : `x${line.quantity} ${item.name}`,
-            detail: custom ? 'Custom serving' : `${peso(item.price)} each`,
+            detail: custom ? 'Custom serving' : `${peso(unitPrice(line.id))} each`,
             // How many servings it counts for in the badges (a custom serving counts as one)
             count: custom ? 1 : line.quantity,
         };
@@ -992,6 +1007,8 @@ if (orderForm && quantityDialog && orderConfirmDialog) {
 
         // Menu cards show how many are on the receipt
         menu.forEach(({ id, button }) => {
+            if (!button) return;
+
             const quantity = list.filter((line) => line.id === id).reduce((sum, line) => sum + line.count, 0);
             const badge = button.querySelector('[data-line-badge]');
             button.dataset.selected = String(quantity > 0);
@@ -1056,7 +1073,7 @@ if (orderForm && quantityDialog && orderConfirmDialog) {
     const updateQuantityTotal = () => {
         quantityTotal.textContent = servingMode() === 'price'
             ? peso(customPrice())
-            : peso(quantityTarget.item.price * clampQuantity(quantityInput.value));
+            : peso(unitPrice(quantityTarget.item.id) * clampQuantity(quantityInput.value));
     };
 
     const applyServingMode = () => {
@@ -1077,7 +1094,7 @@ if (orderForm && quantityDialog && orderConfirmDialog) {
         quantityTarget = { item, mode, key };
 
         quantityDialog.querySelector('[data-quantity-name]').textContent = item.name;
-        quantityDialog.querySelector('[data-quantity-price]').textContent = `${peso(item.price)} each`;
+        quantityDialog.querySelector('[data-quantity-price]').textContent = `${peso(unitPrice(id))} each`;
         quantityConfirm.textContent = mode === 'edit' ? 'Update Receipt' : 'Add to Receipt';
         quantityExisting.hidden = mode === 'edit' || existing === 0;
         quantityExisting.textContent = `Already on the receipt: ${existing}`;
@@ -1152,12 +1169,12 @@ if (orderForm && quantityDialog && orderConfirmDialog) {
 
     // Order details
     typeRadios.forEach((radio) => radio.addEventListener('change', applyType));
-    [methodField, amountField, addressField].forEach((control) => {
+    [methodField, amountField, addressField].filter(Boolean).forEach((control) => {
         control.addEventListener('input', render);
         control.addEventListener('change', render);
     });
 
-    orderForm.querySelector('[data-use-total]').addEventListener('click', () => {
+    orderForm.querySelector('[data-use-total]')?.addEventListener('click', () => {
         amountField.value = (totalOf(receiptLines()) / 100).toFixed(2);
         render();
     });
@@ -1216,9 +1233,16 @@ if (orderForm && quantityDialog && orderConfirmDialog) {
         orderForm.requestSubmit();
     });
 
-    // Leaving with items on the receipt (Back, a menu link, a swipe) would lose the order: ask first
+    // Leaving with an unsaved receipt (Back, a menu link, a swipe) would lose the work: ask first.
+    // When creating, any item counts; when editing, only a change from the order as it was saved.
+    const receiptSnapshot = () => JSON.stringify([...lines.values()].map(({ id, mode, quantity, price }) => [id, mode, quantity, price]));
+    const detailsSnapshot = () => JSON.stringify([noteField?.value ?? '', addressField?.value ?? '']);
+    let savedReceipt = '[]';
+    let savedDetails = detailsSnapshot();
+
     window.addEventListener('beforeunload', (event) => {
-        if (orderForm.dataset.confirmed || lines.size === 0) return;
+        if (orderForm.dataset.confirmed) return;
+        if (receiptSnapshot() === savedReceipt && (!editing || detailsSnapshot() === savedDetails)) return;
 
         event.preventDefault();
         event.returnValue = '';
@@ -1245,6 +1269,12 @@ if (orderForm && quantityDialog && orderConfirmDialog) {
         });
     } catch {
         // No usable saved lines: start empty
+    }
+
+    // Editing starts from the order as it was saved, so only a real change counts as unsaved
+    if (editing) {
+        savedReceipt = receiptSnapshot();
+        savedDetails = detailsSnapshot();
     }
 
     applyType();

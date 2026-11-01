@@ -1,10 +1,40 @@
 @php
-    $bag = $errors->createTransaction;
-    $oldType = old('type', 'WALK IN');
+    // Editing an existing, unpaid order ($editTransaction is given) or taking a new one
+    $editing = isset($editTransaction);
+    $bagName = $editing ? 'editTransaction' : 'createTransaction';
+    $bag = $errors->getBag($bagName);
+    $oldType = $editing ? $editTransaction->type : old('type', 'WALK IN');
     $itemErrors = collect($bag->get('transaction_items.*'))->flatten()->merge($bag->get('transaction_items'))->unique()->values();
-    // Items already on the receipt when the server sent the form back with errors:
+
+    // Editing: what the order holds now. Items already on it keep the price they were sold at,
+    // and the ones that can't be picked from today's menu any more (sold out) stay on the receipt.
+    $quotedPrices = $editing
+        ? $editTransaction->transactionItems->whereNotNull('quantity')->unique('daily_item_id')->mapWithKeys(fn ($line) => [(string) $line->daily_item_id => (string) $line->unit_price])
+        : collect();
+    $pickableIds = $editing
+        ? $menuByCategory->flatten(1)->filter(fn ($dailyItem) => $dailyItem->status !== 'SOLD OUT')->map(fn ($dailyItem) => (string) $dailyItem->id)
+        : collect();
+    $editData = $editing ? [
+        'quoted' => $quotedPrices->all(),
+        'extra' => $editTransaction->transactionItems->unique('daily_item_id')
+            ->reject(fn ($line) => $pickableIds->contains((string) $line->daily_item_id))
+            ->map(fn ($line) => [
+                'id' => (string) $line->daily_item_id,
+                'name' => $line->dailyItem?->item?->name ?? 'Item',
+                'price' => (string) ($quotedPrices[(string) $line->daily_item_id] ?? $line->dailyItem?->price ?? 0),
+            ])->values()->all(),
+    ] : null;
+    $savedLines = $editing && ! old('transaction_items')
+        ? $editTransaction->transactionItems->map(fn ($line) => [
+            'daily_item_id' => $line->daily_item_id,
+            'quantity' => $line->quantity,
+            'unit_price' => $line->unit_price,
+        ])
+        : collect(old('transaction_items', []));
+
+    // Items already on the receipt when the form opens (or when the server sent it back with errors):
     // a list of {id, quantity} or, for a custom serving, {id, unit_price}
-    $initialLines = collect(old('transaction_items', []))
+    $initialLines = $savedLines
         ->filter(fn ($line) => is_array($line) && filled($line['daily_item_id'] ?? null))
         ->map(fn ($line) => filled($line['quantity'] ?? null)
             ? ['id' => (string) $line['daily_item_id'], 'quantity' => (int) $line['quantity']]
@@ -25,7 +55,7 @@
             @endisset
             <h1 class="font-display text-2xl font-bold text-teal-900 sm:text-3xl">{{ $heading ?? 'New Transaction' }}</h1>
         </div>
-        <p class="font-semibold text-ink-soft">{{ now()->format('l, F j, Y') }}</p>
+        <p class="font-semibold text-ink-soft">{{ $subheading ?? now()->format('l, F j, Y') }}</p>
     </div>
 
     @if ($bag->has('transaction'))
@@ -35,11 +65,16 @@
     <form
         id="order-form"
         method="POST"
-        action="{{ route('transactions.store') }}"
+        action="{{ $editing ? route('transactions.update', $editTransaction) : route('transactions.store') }}"
         data-initial-lines="{{ $initialLines->toJson() }}"
+        @if ($editing) data-mode="edit" data-edit="{{ json_encode($editData) }}" @endif
         class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start"
     >
         @csrf
+        @if ($editing)
+            @method('PUT')
+            <input type="hidden" name="from" value="{{ $from ?? '' }}">
+        @endif
         {{-- The receipt's lines are written in here as transaction_items[...] fields --}}
         <div data-line-inputs hidden></div>
 
@@ -121,6 +156,14 @@
                     <h2 class="font-display text-xl font-bold text-teal-900">Order Details</h2>
                 </div>
                 <div class="space-y-5 px-5 py-4">
+                    @if ($editing)
+                        {{-- The type can't change after the order was taken (cancel it and take a new one). --}}
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-wide text-ink-soft">Transaction type</p>
+                            <p class="mt-1 font-display text-lg font-bold text-ink">{{ $editTransaction->type === 'DELIVERY' ? 'Delivery' : 'Walk In' }}</p>
+                            <input type="radio" name="type" value="{{ $editTransaction->type }}" checked disabled class="sr-only" tabindex="-1" aria-hidden="true">
+                        </div>
+                    @else
                     <div>
                         <fieldset class="grid grid-cols-2 gap-2">
                             <legend class="sr-only">Transaction type</legend>
@@ -133,37 +176,40 @@
                                 <span class="{{ $typeLabel }}">Delivery</span>
                             </label>
                         </fieldset>
-                        @error('type', 'createTransaction')
+                        @error('type', $bagName)
                             <p class="mt-2 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
                         @enderror
                     </div>
+                    @endif
 
                     {{-- Delivery: address --}}
                     <div data-section="DELIVERY" hidden>
                         <label for="delivery-address" class="block text-xs font-bold uppercase tracking-wide text-ink-soft">Delivery Address</label>
                         <textarea
                             id="delivery-address" name="address" rows="3" maxlength="500" required
-                            class="mt-1 w-full rounded-lg border-2 bg-white px-3 py-2.5 text-base font-semibold text-ink @error('address', 'createTransaction') border-danger @else border-cream-200 focus:border-teal-500 @enderror"
-                        >{{ old('address') }}</textarea>
-                        @error('address', 'createTransaction')
+                            class="mt-1 w-full rounded-lg border-2 bg-white px-3 py-2.5 text-base font-semibold text-ink @error('address', $bagName) border-danger @else border-cream-200 focus:border-teal-500 @enderror"
+                        >{{ old('address', $editing ? $editTransaction->delivery?->address : null) }}</textarea>
+                        @error('address', $bagName)
                             <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
                         @enderror
                     </div>
 
-                    {{-- Payment: always for a walk in, optional for a delivery that was pre-paid --}}
+                    {{-- Payment: always for a walk in, optional for a delivery that was pre-paid.
+                         Not when editing: an order can only be edited while nothing has been paid. --}}
+                    @unless ($editing)
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <p data-payment-optional hidden class="text-sm text-ink-soft sm:col-span-2">Payment is optional. Only fill it in if the customer already paid for the delivery.</p>
                         <div>
                             <label for="payment-method" class="block text-xs font-bold uppercase tracking-wide text-ink-soft">Payment Method</label>
                             <select
                                 id="payment-method" name="payment_method" required
-                                class="mt-1 w-full cursor-pointer rounded-lg border-2 bg-white px-3 py-2.5 text-base font-semibold text-ink @error('payment_method', 'createTransaction') border-danger @else border-cream-200 focus:border-teal-500 @enderror"
+                                class="mt-1 w-full cursor-pointer rounded-lg border-2 bg-white px-3 py-2.5 text-base font-semibold text-ink @error('payment_method', $bagName) border-danger @else border-cream-200 focus:border-teal-500 @enderror"
                             >
                                 <option value="CASH" @selected(old('payment_method', 'CASH') === 'CASH')>Cash</option>
                                 <option value="GCASH" @selected(old('payment_method') === 'GCASH')>GCash</option>
                                 <option value="BANK TRANSFER" @selected(old('payment_method') === 'BANK TRANSFER')>Bank Transfer</option>
                             </select>
-                            @error('payment_method', 'createTransaction')
+                            @error('payment_method', $bagName)
                                 <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
                             @enderror
                         </div>
@@ -176,25 +222,26 @@
                                     <input
                                         id="payment-amount" name="payment_amount" type="number" inputmode="decimal" step="0.01" min="0" required
                                         value="{{ old('payment_amount') }}"
-                                        class="w-full rounded-lg border-2 bg-white py-2.5 pl-8 pr-3 text-base font-bold text-ink @error('payment_amount', 'createTransaction') border-danger @else border-cream-200 focus:border-teal-500 @enderror"
+                                        class="w-full rounded-lg border-2 bg-white py-2.5 pl-8 pr-3 text-base font-bold text-ink @error('payment_amount', $bagName) border-danger @else border-cream-200 focus:border-teal-500 @enderror"
                                     >
                                 </div>
                                 <button type="button" data-use-total class="shrink-0 cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-3 text-sm font-bold text-teal-700 hover:border-teal-500">Exact</button>
                             </div>
-                            @error('payment_amount', 'createTransaction')
+                            @error('payment_amount', $bagName)
                                 <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
                             @enderror
                         </div>
                     </div>
+                    @endunless
 
                     {{-- Note (walk in and delivery) --}}
                     <div>
                         <label for="transaction-note" class="block text-xs font-bold uppercase tracking-wide text-ink-soft">Note <span class="font-semibold normal-case tracking-normal">(optional)</span></label>
                         <textarea
                             id="transaction-note" name="note" rows="2" maxlength="500"
-                            class="mt-1 w-full rounded-lg border-2 bg-white px-3 py-2.5 text-base font-semibold text-ink @error('note', 'createTransaction') border-danger @else border-cream-200 focus:border-teal-500 @enderror"
-                        >{{ old('note') }}</textarea>
-                        @error('note', 'createTransaction')
+                            class="mt-1 w-full rounded-lg border-2 bg-white px-3 py-2.5 text-base font-semibold text-ink @error('note', $bagName) border-danger @else border-cream-200 focus:border-teal-500 @enderror"
+                        >{{ old('note', $editing ? $editTransaction->note : null) }}</textarea>
+                        @error('note', $bagName)
                             <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
                         @enderror
                     </div>
@@ -210,7 +257,7 @@
                 </div>
                 <div class="mt-4 text-center">
                     <p class="font-display text-lg font-bold text-teal-900">Receipt</p>
-                    <p class="mt-1 text-xs text-ink-soft">{{ now()->format('M j, Y') }}</p>
+                    <p class="mt-1 text-xs text-ink-soft">{{ $editing ? $editTransaction->transaction_date->format('M j, Y') : now()->format('M j, Y') }}</p>
                 </div>
 
                 <div class="mt-4 border-t border-dashed border-cream-200 pt-4">
@@ -245,7 +292,7 @@
             <button
                 type="submit"
                 class="mt-4 w-full cursor-pointer rounded-lg bg-amber-500 px-5 py-3 font-display text-lg font-bold leading-tight text-ink shadow-[0_4px_0_0_var(--color-amber-600)] transition hover:bg-amber-400 active:translate-y-[2px] active:shadow-[0_2px_0_0_var(--color-amber-600)]"
-            >Create Transaction</button>
+            >{{ $editing ? 'Save Changes' : 'Create Transaction' }}</button>
         </aside>
     </form>
 </div>
@@ -323,4 +370,7 @@
     </div>
 </dialog>
 
-@include('transactions.partials.confirm-dialog')
+@include('transactions.partials.confirm-dialog', [
+    'confirmTitle' => $editing ? 'Save Changes?' : 'Create Transaction?',
+    'confirmLabel' => $editing ? 'Save Changes' : 'Create Transaction',
+])

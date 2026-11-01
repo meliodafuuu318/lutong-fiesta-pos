@@ -10,6 +10,8 @@
     $isAdmin = auth()->user()->isAdmin();
     $canCancel = ($isAdmin || auth()->user()->isCashier()) && ! $transaction->isVoid() && ! $deliveryCompleted;
     $canRefund = $isAdmin && ! $transaction->isVoid() && $deliveryCompleted;
+    // Admin only, and only while nothing has happened to the order (no payment, not delivered or void)
+    $canEdit = $isAdmin && $transaction->canBeEdited();
     // The page the user came from (the list or tab that linked here), never this page or the order form
     $backUrl = \App\Support\BackUrl::resolve(request('from'), $isAdmin ? route('transactions.index') : route('dashboard'));
 @endphp
@@ -23,11 +25,14 @@
         <h1 class="font-display text-2xl font-bold text-teal-900 sm:text-3xl">Transaction Details</h1>
     </div>
 
-    @if ($canCancel || $canRefund)
-        <div class="mt-4 flex justify-end">
+    @if ($canEdit || $canCancel || $canRefund)
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            @if ($canEdit)
+                <a href="{{ route('transactions.edit', ['transaction' => $transaction, 'from' => $backUrl]) }}" class="cursor-pointer rounded-lg border-2 border-teal-700 px-4 py-2.5 font-bold text-teal-700 hover:bg-teal-700 hover:text-cream-50">Edit Transaction</a>
+            @endif
             @if ($canCancel)
                 <button type="button" data-transaction-cancel-open class="cursor-pointer rounded-lg border-2 border-danger px-4 py-2.5 font-bold text-danger hover:bg-danger hover:text-cream-50">Cancel Transaction</button>
-            @else
+            @elseif ($canRefund)
                 <button type="button" data-transaction-refund-open class="cursor-pointer rounded-lg border-2 border-danger px-4 py-2.5 font-bold text-danger hover:bg-danger hover:text-cream-50">Return / Refund</button>
             @endif
         </div>
