@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\ExpenseController;
 use App\Http\Controllers\Web\ItemAnalyticsController;
 use App\Http\Controllers\Web\ItemController;
 use App\Http\Controllers\Web\MenuController;
+use App\Http\Controllers\Web\PaymentController;
 use App\Http\Controllers\Web\PushSubscriptionController;
 use App\Http\Controllers\Web\TransactionController;
 use Illuminate\Support\Facades\Route;
@@ -29,6 +30,7 @@ Route::middleware(['no-store', 'auth'])->group(function () {
 
     // Admin and cashier: the transaction list, its details, taking an order, cancelling one
     // (a duplicate entry, say) and the orders that still have to be paid for.
+    // The payments list (what came in, by method and day) is here too.
     // (The cashier takes orders from the dashboard.)
     Route::middleware('role:admin,cashier')->group(function () {
         Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
@@ -36,6 +38,7 @@ Route::middleware(['no-store', 'auth'])->group(function () {
         Route::get('/transactions/{transaction}', [TransactionController::class, 'show'])->whereNumber('transaction')->name('transactions.show');
         Route::patch('/transactions/{transaction}/cancel', [TransactionController::class, 'cancel'])->name('transactions.cancel');
         Route::get('/pending-payments', [DashboardController::class, 'pendingPayments'])->name('pending-payments');
+        Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
     });
 
     // Everyone who collects money: adding a payment to an order.

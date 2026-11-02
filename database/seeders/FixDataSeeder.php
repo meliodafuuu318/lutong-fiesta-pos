@@ -53,5 +53,19 @@ class FixDataSeeder extends Seeder
         //     $snack->category_id = Category::where('name', 'Snacks')->first()->id;
         //     $snack->save();
         // });
+
+        // // Rename beverages
+        // // Coke Mismo to Coke 290mL
+        // Item::where('name', 'Coke Mismo')->update([
+        //     'name' => 'Coke 290mL'
+        // ]);
+        // // Cobra to Cobra 330mL
+        // Item::where('name', 'Cobra')->update([
+        //     'name' => 'Cobra 330mL'
+        // ]);
+        // // Royal Mismo to Royal 250mL
+        // Item::where('name', 'Royal Mismo')->update([
+        //     'name' => 'Royal 250mL'
+        // ]);
     }
 }
