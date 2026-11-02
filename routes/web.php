@@ -4,6 +4,7 @@ use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\DailyItemController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\ExpenseController;
+use App\Http\Controllers\Web\ItemAnalyticsController;
 use App\Http\Controllers\Web\ItemController;
 use App\Http\Controllers\Web\MenuController;
 use App\Http\Controllers\Web\PushSubscriptionController;
@@ -59,6 +60,7 @@ Route::middleware(['no-store', 'auth'])->group(function () {
         Route::get('/transactions/{transaction}/edit', [TransactionController::class, 'edit'])->whereNumber('transaction')->name('transactions.edit');
         Route::put('/transactions/{transaction}', [TransactionController::class, 'update'])->whereNumber('transaction')->name('transactions.update');
         Route::patch('/transactions/{transaction}/refund', [TransactionController::class, 'refund'])->name('transactions.refund');
+        Route::get('/analytics/items', [ItemAnalyticsController::class, 'index'])->name('analytics.items');
         Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
         Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.store');
         Route::put('/expenses/{expense}', [ExpenseController::class, 'update'])->name('expenses.update');

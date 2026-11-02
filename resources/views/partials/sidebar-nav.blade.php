@@ -15,6 +15,10 @@
             'icon' => '<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
         ],
         [
+            'roles' => ['admin'], 'label' => 'Item Analytics', 'route' => 'analytics.items', 'active' => 'analytics.*',
+            'icon' => '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 16V9"/><path d="M12 16V5"/><path d="M17 16v-4"/>',
+        ],
+        [
             'roles' => ['cashier'], 'label' => 'Pending Payments', 'route' => 'pending-payments', 'active' => 'pending-payments',
             'icon' => '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
         ],
