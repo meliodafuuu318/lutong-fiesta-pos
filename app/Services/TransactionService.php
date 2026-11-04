@@ -12,7 +12,9 @@ use App\Models\User;
 use App\Events\TransactionCreated;
 use App\Events\TransactionUpdated;
 use App\Notifications\NewTransactionNotification;
+use App\Notifications\TransactionUpdatedNotification;
 use App\Traits\Generator;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -219,6 +221,7 @@ class TransactionService
             return $transaction->refresh();
         });
 
+        $this->notifyUpdated($result, TransactionUpdatedNotification::REASON_EDITED);
         TransactionUpdated::fire($result->id, 'edited');
 
         return $result;
@@ -234,10 +237,7 @@ class TransactionService
     private function notifyCreated(Transaction $transaction): void
     {
         try {
-            $recipients = User::query()
-                ->whereHas('pushSubscriptions')
-                ->when($transaction->type !== 'DELIVERY', fn ($query) => $query->where('role', '!=', User::ROLE_RIDER))
-                ->get();
+            $recipients = $this->pushRecipients($transaction);
 
             Log::info("Push: new order {$transaction->reference_number}, {$recipients->count()} subscribed user(s) to notify.");
 
@@ -247,6 +247,41 @@ class TransactionService
         } catch (Throwable $e) {
             report($e);
         }
+    }
+
+    /**
+     * Push a change to an order (edited, payment, delivered) to the same people who hear about new
+     * orders. $detail replaces the default "reference · total" body line when given.
+     *
+     * Same rules as notifyCreated: sent right away, and never allowed to fail the change itself.
+     */
+    private function notifyUpdated(Transaction $transaction, string $reason, ?string $detail = null): void
+    {
+        try {
+            $recipients = $this->pushRecipients($transaction);
+
+            Log::info("Push: order {$transaction->reference_number} {$reason}, {$recipients->count()} subscribed user(s) to notify.");
+
+            if ($recipients->isNotEmpty()) {
+                Notification::sendNow($recipients, new TransactionUpdatedNotification($transaction, $reason, $detail));
+            }
+        } catch (Throwable $e) {
+            report($e);
+        }
+    }
+
+    /**
+     * Everyone with push turned on who should hear about this order. Riders are left out of
+     * anything that isn't a delivery.
+     *
+     * @return Collection<int, User>
+     */
+    private function pushRecipients(Transaction $transaction): Collection
+    {
+        return User::query()
+            ->whereHas('pushSubscriptions')
+            ->when($transaction->type !== 'DELIVERY', fn ($query) => $query->where('role', '!=', User::ROLE_RIDER))
+            ->get();
     }
 
     /**
@@ -295,6 +330,17 @@ class TransactionService
             return $payment;
         });
 
+        $transaction = Transaction::find($result->transaction_id);
+
+        if ($transaction) {
+            $this->notifyUpdated(
+                $transaction,
+                TransactionUpdatedNotification::REASON_PAYMENT,
+                '₱' . number_format((float) $result->payment_amount, 2) . ' ' . $result->payment_method
+                    . ($transaction->payment_status === 'PAID' ? ' · fully paid' : ''),
+            );
+        }
+
         TransactionUpdated::fire($result->transaction_id, 'payment');
 
         return $result;
@@ -329,6 +375,10 @@ class TransactionService
 
             return $delivery;
         });
+
+        if ($transaction = Transaction::find($result->transaction_id)) {
+            $this->notifyUpdated($transaction, TransactionUpdatedNotification::REASON_DELIVERED);
+        }
 
         TransactionUpdated::fire($result->transaction_id, 'delivered');
 

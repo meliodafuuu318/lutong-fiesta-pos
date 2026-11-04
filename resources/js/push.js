@@ -1,4 +1,13 @@
 // Order notifications: the bell in the header turns web push on or off for this browser.
+import { playBell } from './bell';
+
+// The service worker tells open pages when a push arrives so the bell can ring.
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data?.type === 'push-received') playBell();
+    });
+}
+
 const button = document.querySelector('[data-push-toggle]');
 const publicKey = document.querySelector('meta[name="vapid-public-key"]')?.content;
 const endpointUrl = document.querySelector('meta[name="push-subscriptions-url"]')?.content;

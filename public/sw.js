@@ -12,13 +12,22 @@ self.addEventListener('push', (event) => {
         payload = { body: event.data ? event.data.text() : '' };
     }
 
-    event.waitUntil(self.registration.showNotification(payload.title || 'Lutong Piyesta', {
-        body: payload.body,
-        icon: payload.icon || '/images/apple-touch-icon.png',
-        badge: payload.badge,
-        tag: payload.tag,
-        data: payload.data || {},
-    }));
+    event.waitUntil((async () => {
+        // Tell any open page to ring the bell (a service worker can't play sound itself).
+        const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+        windows.forEach((client) => client.postMessage({ type: 'push-received' }));
+
+        await self.registration.showNotification(payload.title || 'Lutong Piyesta', {
+            body: payload.body,
+            icon: payload.icon || '/images/apple-touch-icon.png',
+            badge: payload.badge,
+            tag: payload.tag,
+            data: payload.data || {},
+            silent: false,           // ask the OS to use its notification sound
+            renotify: Boolean(payload.tag), // alert again even when this tag is already showing
+            vibrate: [200, 100, 200],
+        });
+    })());
 });
 
 self.addEventListener('notificationclick', (event) => {
