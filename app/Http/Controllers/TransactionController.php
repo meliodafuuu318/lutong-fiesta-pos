@@ -16,6 +16,7 @@ use App\Http\Requests\Transaction\{
     IndexTransactionRequest
 };
 use App\Http\Resources\TransactionResource;
+use App\Events\TransactionUpdated;
 use App\Services\TransactionService;
 use Illuminate\Support\Facades\DB;
 
@@ -116,6 +117,8 @@ class TransactionController extends Controller
 
             $transactions->syncOverallStatus($transaction);
             DB::commit();
+
+            TransactionUpdated::fire($transaction->id, 'edited');
 
             $transaction->refresh()->load('delivery');
 

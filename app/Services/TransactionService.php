@@ -9,6 +9,8 @@ use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\TransactionPayment;
 use App\Models\User;
+use App\Events\TransactionCreated;
+use App\Events\TransactionUpdated;
 use App\Notifications\NewTransactionNotification;
 use App\Traits\Generator;
 use Illuminate\Support\Facades\DB;
@@ -111,6 +113,7 @@ class TransactionService
 
         // Only once everything is saved, so nobody is told about an order that was rolled back.
         $this->notifyCreated($transaction);
+        TransactionCreated::fire($transaction->id);
 
         return $transaction;
     }
@@ -131,7 +134,7 @@ class TransactionService
      */
     public function update(Transaction $transaction, array $data): Transaction
     {
-        return DB::transaction(function () use ($transaction, $data) {
+        $result = DB::transaction(function () use ($transaction, $data) {
             // Locked so a payment or a delivery can't slip in while the order is being changed.
             $transaction = Transaction::with(['delivery', 'transactionItems', 'transactionPayments'])
                 ->lockForUpdate()
@@ -215,6 +218,10 @@ class TransactionService
 
             return $transaction->refresh();
         });
+
+        TransactionUpdated::fire($result->id, 'edited');
+
+        return $result;
     }
 
     /**
@@ -252,7 +259,7 @@ class TransactionService
      */
     public function addPayment(Transaction $transaction, string $method, float|int|string $amount): TransactionPayment
     {
-        return DB::transaction(function () use ($transaction, $method, $amount) {
+        $result = DB::transaction(function () use ($transaction, $method, $amount) {
             // Locked so that two people paying at once can't both see the old balance.
             $transaction = Transaction::whereKey($transaction->getKey())->lockForUpdate()->firstOrFail();
 
@@ -287,6 +294,10 @@ class TransactionService
 
             return $payment;
         });
+
+        TransactionUpdated::fire($result->transaction_id, 'payment');
+
+        return $result;
     }
 
     /**
@@ -296,7 +307,7 @@ class TransactionService
      */
     public function markDelivered(Transaction $transaction): Delivery
     {
-        return DB::transaction(function () use ($transaction) {
+        $result = DB::transaction(function () use ($transaction) {
             $transaction = Transaction::whereKey($transaction->getKey())->lockForUpdate()->firstOrFail();
 
             if ($transaction->isVoid()) {
@@ -318,11 +329,15 @@ class TransactionService
 
             return $delivery;
         });
+
+        TransactionUpdated::fire($result->transaction_id, 'delivered');
+
+        return $result;
     }
 
     public function cancel(Transaction $transaction): Transaction
     {
-        return DB::transaction(function () use ($transaction) {
+        $result = DB::transaction(function () use ($transaction) {
             $transaction = Transaction::with('delivery')->lockForUpdate()->findOrFail($transaction->getKey());
 
             if ($transaction->isVoid()) {
@@ -337,11 +352,15 @@ class TransactionService
 
             return $transaction->refresh();
         });
+
+        TransactionUpdated::fire($result->id, 'cancelled');
+
+        return $result;
     }
 
     public function refund(Transaction $transaction): Transaction
     {
-        return DB::transaction(function () use ($transaction) {
+        $result = DB::transaction(function () use ($transaction) {
             $transaction = Transaction::with('delivery')->lockForUpdate()->findOrFail($transaction->getKey());
 
             if ($transaction->isVoid()) {
@@ -356,6 +375,10 @@ class TransactionService
 
             return $transaction->refresh();
         });
+
+        TransactionUpdated::fire($result->id, 'refunded');
+
+        return $result;
     }
 
     public function syncOverallStatus(Transaction $transaction): void

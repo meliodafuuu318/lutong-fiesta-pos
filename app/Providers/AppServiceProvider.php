@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\DailyItem;
+use App\Models\Expense;
+use App\Models\Item;
+use App\Observers\RealtimeObserver;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
@@ -25,6 +29,11 @@ class AppServiceProvider extends ServiceProvider
     {
         if (app()->environment('production')) {
             URL::forceScheme('https');
+        }
+
+        // Menu, item and expense changes are announced to the open screens (see RealtimeObserver).
+        foreach ([DailyItem::class, Item::class, Expense::class] as $model) {
+            $model::observe(RealtimeObserver::class);
         }
 
         // The push service refusing a message doesn't throw, so without this it would fail silently.
