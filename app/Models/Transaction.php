@@ -127,7 +127,7 @@ class Transaction extends Model
     }
 
     public function scopeToday($query) {
-        return $query->active()->whereDate('transaction_date', now()->toDateString());
+        return $query->active()->whereBetween('transaction_date', [now()->startOfDay(), now()->endOfDay()]);
     }
 
     public function scopeWeekly($query) {

@@ -8,6 +8,7 @@ use App\Models\Expense;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Carbon\Carbon;
 
 class ExpenseController extends Controller
 {
@@ -18,11 +19,11 @@ class ExpenseController extends Controller
         $query = Expense::query();
 
         if ($request->filled('date_from')) {
-            $query->whereDate('expense_date', '>=', $request->date_from);
+            $query->where('expense_date', '>=', Carbon::parse($request->date_from)->toDateString());
         }
 
         if ($request->filled('date_to')) {
-            $query->whereDate('expense_date', '<=', $request->date_to);
+            $query->where('expense_date', '<', Carbon::parse($request->date_to)->addDay()->toDateString());
         }
 
         // Covers the whole filtered range, not just the current page. Money that came back in

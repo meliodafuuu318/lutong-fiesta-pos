@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 
 class DailyItem extends Model
 {
@@ -35,6 +36,17 @@ class DailyItem extends Model
         return $query->where('status', 'AVAILABLE');
     }
     public function scopeTodayMenu($query) {
-        return $query->whereDate('date', today());
+        return $query->onDate(today());
+    }
+
+    /**
+     * Rows for one calendar day. A range instead of whereDate() so the index on `date` can be used
+     * (DATE(date) would force a full scan). Works whether the value was stored as "Y-m-d" or "Y-m-d 00:00:00".
+     */
+    public function scopeOnDate($query, $date) {
+        $day = Carbon::parse($date);
+
+        return $query->where('date', '>=', $day->toDateString())
+            ->where('date', '<', $day->copy()->addDay()->toDateString());
     }
 }

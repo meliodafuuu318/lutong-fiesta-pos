@@ -7,6 +7,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Carbon\Carbon;
 
 /**
  * The numbers behind the payments page: money that came in, by payment method and by day.
@@ -159,8 +160,8 @@ class PaymentReportService
     {
         return TransactionPayment::query()
             ->join('transactions', 'transactions.id', '=', 'transaction_payments.transaction_id')
-            ->when($filters['date_from'] ?? null, fn (Builder $q, string $date) => $q->whereDate('transaction_payments.created_at', '>=', $date))
-            ->when($filters['date_to'] ?? null, fn (Builder $q, string $date) => $q->whereDate('transaction_payments.created_at', '<=', $date))
+            ->when($filters['date_from'] ?? null, fn (Builder $q, string $date) => $q->where('transaction_payments.created_at', '>=', Carbon::parse($date)->startOfDay()))
+            ->when($filters['date_to'] ?? null, fn (Builder $q, string $date) => $q->where('transaction_payments.created_at', '<=', Carbon::parse($date)->endOfDay()))
             ->when($filters['method'] ?? null, fn (Builder $q, string $method) => $q->where('transaction_payments.payment_method', $method))
             ->when($filters['type'] ?? null, fn (Builder $q, string $type) => $q->where('transactions.type', $type))
             ->when($filters['search'] ?? null, fn (Builder $q, string $search) => $q->where('transactions.reference_number', 'like', '%' . $search . '%'))

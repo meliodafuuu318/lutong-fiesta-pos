@@ -76,8 +76,8 @@ class ItemAnalyticsService
     public function popularity(?CarbonInterface $from, ?CarbonInterface $to, string $sort = 'total', int $minAppearances = 1): Collection
     {
         $appearances = DailyItem::query()
-            ->when($from, fn ($query) => $query->whereDate('date', '>=', $from->toDateString()))
-            ->when($to, fn ($query) => $query->whereDate('date', '<=', $to->toDateString()))
+            ->when($from, fn ($query) => $query->where('date', '>=', $from->toDateString()))
+            ->when($to, fn ($query) => $query->where('date', '<', $to->copy()->addDay()->toDateString()))
             ->selectRaw('item_id, COUNT(*) as appearances')
             ->groupBy('item_id')
             ->pluck('appearances', 'item_id');
@@ -90,8 +90,8 @@ class ItemAnalyticsService
             ->join('transactions', 'transactions.id', '=', 'transaction_items.transaction_id')
             ->join('daily_items', 'daily_items.id', '=', 'transaction_items.daily_item_id')
             ->whereNotIn('transactions.status', self::VOID_STATUSES)
-            ->when($from, fn ($query) => $query->whereDate('daily_items.date', '>=', $from->toDateString()))
-            ->when($to, fn ($query) => $query->whereDate('daily_items.date', '<=', $to->toDateString()))
+            ->when($from, fn ($query) => $query->where('daily_items.date', '>=', $from->toDateString()))
+            ->when($to, fn ($query) => $query->where('daily_items.date', '<', $to->copy()->addDay()->toDateString()))
             ->groupBy('daily_items.item_id')
             ->selectRaw('daily_items.item_id as item_id')
             ->selectRaw('SUM(COALESCE(transaction_items.quantity, 1)) as units')
@@ -158,7 +158,7 @@ class ItemAnalyticsService
     public function dailyReport(CarbonInterface $date): array
     {
         $menu = DailyItem::query()
-            ->whereDate('date', $date->toDateString())
+            ->onDate($date)
             ->with('item.category')
             ->get();
 

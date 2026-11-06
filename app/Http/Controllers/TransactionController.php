@@ -19,6 +19,7 @@ use App\Http\Resources\TransactionResource;
 use App\Events\TransactionUpdated;
 use App\Services\TransactionService;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class TransactionController extends Controller
 {
@@ -36,10 +37,10 @@ class TransactionController extends Controller
         }
 
         if ($request->filled('date_from')) {
-            $transactions->whereDate('created_at', '>=', $request->date_from);
+            $transactions->where('created_at', '>=', Carbon::parse($request->date_from)->startOfDay());
         }
         if ($request->filled('date_to')) {
-            $transactions->whereDate('created_at', '<=', $request->date_to);
+            $transactions->where('created_at', '<=', Carbon::parse($request->date_to)->endOfDay());
         }
 
         $transactions = $transactions->get();

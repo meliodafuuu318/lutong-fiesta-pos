@@ -16,6 +16,7 @@ use App\Support\BackUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Carbon\Carbon;
 
 class TransactionController extends Controller
 {
@@ -35,11 +36,11 @@ class TransactionController extends Controller
         }
 
         if ($request->filled('date_from')) {
-            $query->whereDate('transaction_date', '>=', $request->date_from);
+            $query->where('transaction_date', '>=', Carbon::parse($request->date_from)->startOfDay());
         }
 
         if ($request->filled('date_to')) {
-            $query->whereDate('transaction_date', '<=', $request->date_to);
+            $query->where('transaction_date', '<=', Carbon::parse($request->date_to)->endOfDay());
         }
 
         $sortBy = $request->input('sort_by', 'transaction_date');

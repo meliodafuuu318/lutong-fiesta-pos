@@ -8,6 +8,7 @@ use App\Http\Requests\Expense\{
     IndexExpenseRequest,
     StoreExpenseRequest
 };
+use Carbon\Carbon;
 
 class ExpenseController extends Controller
 {
@@ -15,10 +16,10 @@ class ExpenseController extends Controller
         $expenses = Expense::query();
 
         if ($request->filled('date_from')) {
-            $expenses->whereDate('expense_date', '>=', $request->input('date_from'));
+            $expenses->where('expense_date', '>=', Carbon::parse($request->input('date_from'))->toDateString());
         }
         if ($request->filled('date_to')) {
-            $expenses->whereDate('expense_date', '<=', $request->input('date_to'));
+            $expenses->where('expense_date', '<', Carbon::parse($request->input('date_to'))->addDay()->toDateString());
         }
 
         // The total covers the whole filtered range, not just the current page.

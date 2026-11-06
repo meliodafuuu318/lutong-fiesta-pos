@@ -30,7 +30,7 @@ class MenuService
     public function forDate(CarbonInterface $date, array $alsoIds = []): array
     {
         $menuByCategory = DailyItem::query()
-            ->where(fn ($query) => $query->whereDate('date', $date->toDateString())->orWhereIn('id', $alsoIds))
+            ->where(fn ($query) => $query->onDate($date)->orWhereIn('id', $alsoIds))
             ->with('item')
             ->get()
             ->sortBy(fn (DailyItem $dailyItem) => [$dailyItem->status === 'SOLD OUT' ? 1 : 0, $dailyItem->item->name])

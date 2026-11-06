@@ -24,7 +24,8 @@ class Expense extends Model
     ];
 
     public function scopeToday($query) {
-        return $query->whereDate('expense_date', now()->toDateString());
+        return $query->where('expense_date', '>=', now()->toDateString())
+            ->where('expense_date', '<', now()->addDay()->toDateString());
     }
 
     public function scopeWeekly($query) {

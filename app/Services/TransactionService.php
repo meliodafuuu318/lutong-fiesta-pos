@@ -162,7 +162,7 @@ class TransactionService
 
                 $dailyItem = $onOrder->has($id)
                     ? DailyItem::find($id)
-                    : DailyItem::whereDate('date', $menuDate)->available()->find($id);
+                    : DailyItem::onDate($menuDate)->available()->find($id);
 
                 if (! $dailyItem) {
                     throw new TransactionException('Daily item not available for item_id: ' . $id, $id);
