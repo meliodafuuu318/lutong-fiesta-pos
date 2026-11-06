@@ -47,9 +47,42 @@ function init() {
         return !!active && ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName);
     };
 
-    const refresh = () => {
+    // A reload while offline replaces the page someone is reading (say, pending deliveries on a ride
+    // with no signal) with the browser's "you're offline" error. navigator.onLine only knows whether
+    // there is a network interface, not whether the server is reachable (wifi without internet reports
+    // true), so ask the server itself before reloading.
+    const reachable = async () => {
+        if (!navigator.onLine) return false;
+
+        const controller = new AbortController();
+        const abort = setTimeout(() => controller.abort(), 4000);
+
+        try {
+            const response = await fetch('/up', { method: 'HEAD', cache: 'no-store', credentials: 'omit', signal: controller.signal });
+            return response.ok;
+        } catch {
+            return false;
+        } finally {
+            clearTimeout(abort);
+        }
+    };
+
+    const refresh = async () => {
         timer = null;
 
+        if (busy()) {
+            timer = setTimeout(refresh, 2000);
+            return;
+        }
+
+        if (!(await reachable())) {
+            // Offline: keep the page exactly as it is and look again later. Coming back online,
+            // the socket reconnecting, or returning to the tab all try sooner.
+            timer = setTimeout(refresh, 15_000);
+            return;
+        }
+
+        // Time passed during the check: someone may have started typing or opened something.
         if (busy()) {
             timer = setTimeout(refresh, 2000);
             return;
@@ -77,6 +110,8 @@ function init() {
         if (timer || (hiddenAt && Date.now() - hiddenAt > 60_000)) schedule();
         hiddenAt = null;
     });
+
+    window.addEventListener('online', schedule);
 
     const channel = window.Echo.private('pos');
     events.forEach((name) => channel.listen(`.${name}`, schedule));
