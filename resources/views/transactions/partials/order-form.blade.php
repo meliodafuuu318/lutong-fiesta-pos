@@ -192,6 +192,20 @@
                         @error('address', $bagName)
                             <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
                         @enderror
+
+                        <label for="delivery-fee" class="mt-4 block text-xs font-bold uppercase tracking-wide text-ink-soft">Delivery Fee <span class="font-semibold normal-case tracking-normal">(optional)</span></label>
+                        <div class="relative mt-1">
+                            <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center font-bold text-ink-soft">₱</span>
+                            <input
+                                id="delivery-fee" name="delivery_fee" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00"
+                                value="{{ old('delivery_fee', $editing && (float) $editTransaction->delivery?->delivery_fee > 0 ? $editTransaction->delivery->delivery_fee : null) }}"
+                                class="w-full rounded-lg border-2 bg-white py-2.5 pl-8 pr-3 text-base font-bold text-ink @error('delivery_fee', $bagName) border-danger @else border-cream-200 focus:border-teal-500 @enderror"
+                            >
+                        </div>
+                        <p class="mt-1 text-xs text-ink-soft">Leave blank for free delivery.</p>
+                        @error('delivery_fee', $bagName)
+                            <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     {{-- Payment: always for a walk in, optional for a delivery that was pre-paid.
@@ -268,6 +282,16 @@
                 </div>
 
                 <div class="mt-4 space-y-1 border-t border-dashed border-cream-200 pt-4 text-sm">
+                    <div data-receipt-fee-rows hidden class="space-y-1">
+                        <div class="flex items-center justify-between">
+                            <p class="text-ink-soft">Subtotal</p>
+                            <p class="font-semibold text-ink" data-receipt-subtotal>₱0.00</p>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <p class="text-ink-soft">Delivery Fee</p>
+                            <p class="font-semibold text-ink" data-receipt-fee>Free</p>
+                        </div>
+                    </div>
                     <div class="flex items-center justify-between">
                         <p class="text-ink-soft">Total</p>
                         <p class="font-display text-xl font-bold text-teal-700" data-receipt-total>₱0.00</p>

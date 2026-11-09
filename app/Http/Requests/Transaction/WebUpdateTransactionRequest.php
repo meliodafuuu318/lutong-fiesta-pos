@@ -22,6 +22,7 @@ class WebUpdateTransactionRequest extends WebStoreTransactionRequest
             'transaction_items.*.unit_price' => ['required_without:transaction_items.*.quantity', 'nullable', 'numeric', 'min:0'],
             'address' => [$isDelivery ? 'required' : 'nullable', 'string', 'max:500'],
             'note' => ['nullable', 'string', 'max:500'],
+            'delivery_fee' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:99999999.99'],
         ];
     }
 }

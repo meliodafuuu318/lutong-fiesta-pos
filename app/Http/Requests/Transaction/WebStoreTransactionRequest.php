@@ -34,6 +34,9 @@ class WebStoreTransactionRequest extends StoreTransactionRequest
             'payment_amount.min' => 'The amount paid can\'t be negative.',
             'payment_amount.max' => 'That amount is too large.',
             'note.max' => 'The note is too long (500 characters at most).',
+            'delivery_fee.numeric' => 'The delivery fee must be a number.',
+            'delivery_fee.min' => 'The delivery fee can\'t be negative.',
+            'delivery_fee.max' => 'That delivery fee is too large.',
             'address.required_if' => 'Enter the delivery address.',
             'address.max' => 'The address is too long.',
         ];

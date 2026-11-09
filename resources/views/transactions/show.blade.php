@@ -94,6 +94,10 @@
                                 <p class="text-xs font-bold uppercase tracking-wide text-ink-soft">Delivery Status</p>
                                 <div class="mt-1"><x-status-badge :status="$transaction->delivery->status" /></div>
                             </div>
+                            <div>
+                                <p class="text-xs font-bold uppercase tracking-wide text-ink-soft">Delivery Fee</p>
+                                <p class="mt-1 text-base font-semibold text-ink">{{ (float) $transaction->delivery->delivery_fee > 0 ? '₱' . number_format($transaction->delivery->delivery_fee, 2) : 'Free' }}</p>
+                            </div>
                         </div>
                     @else
                         <p class="text-sm text-ink-soft">Not applicable for this transaction.</p>
@@ -144,6 +148,17 @@
                     </div>
                 </div>
                 <div class="mt-4 border-t border-dashed border-cream-200 pt-4 space-y-1 text-sm">
+                    @if ($transaction->type === 'DELIVERY' && $transaction->delivery)
+                        @php $rcptFee = (float) $transaction->delivery->delivery_fee; @endphp
+                        <div class="flex items-center justify-between">
+                            <p class="text-ink-soft">Subtotal</p>
+                            <p class="font-semibold text-ink">₱{{ number_format((float) $transaction->total - $rcptFee, 2) }}</p>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <p class="text-ink-soft">Delivery Fee</p>
+                            <p class="font-semibold text-ink">{{ $rcptFee > 0 ? '₱' . number_format($rcptFee, 2) : 'Free' }}</p>
+                        </div>
+                    @endif
                     <div class="flex items-center justify-between">
                         <p class="text-ink-soft">Total</p>
                         <p class="font-bold text-ink">₱{{ number_format($transaction->total, 2) }}</p>
@@ -221,6 +236,11 @@
         );
     }
     $rcp[] = $rcpRule;
+    if ($transaction->type === 'DELIVERY' && $transaction->delivery) {
+        $rcpFee = (float) $transaction->delivery->delivery_fee;
+        $rcp[] = $rcpLine('Subtotal', $rcpMoney((float) $transaction->total - $rcpFee));
+        $rcp[] = $rcpLine('Delivery Fee', $rcpFee > 0 ? $rcpMoney($rcpFee) : 'Free');
+    }
     $rcp[] = $rcpLine('TOTAL', $rcpMoney($transaction->total));
     $rcp[] = $rcpRule;
     $rcp[] = 'PAYMENTS';

@@ -34,6 +34,7 @@ class StoreTransactionRequest extends FormRequest
             'payment_amount' => ['required_if:type,WALK IN', 'required_with:payment_method', 'nullable', 'numeric', 'min:0', 'max:99999999.99'],
             'address' => ['required_if:type,DELIVERY', 'nullable', 'string', 'max:500'],
             'note' => ['nullable', 'string', 'max:500'],
+            'delivery_fee' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:99999999.99'],
         ];
     }
 }

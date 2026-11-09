@@ -9,6 +9,7 @@ use App\Models\TransactionItem;
 use App\Models\DailyItem;
 use App\Models\Category;
 use App\Models\Item;
+use App\Models\Delivery;
 
 class FixDataSeeder extends Seeder
 {
@@ -18,54 +19,35 @@ class FixDataSeeder extends Seeder
     public function run(): void
     {
         // $duplicate = Transaction::where('status', 'REFUNDED')->delete();
-        // $updateStatus = Transaction::where('payment_status', 'PENDING')
-        //     ->where('status', 'PENDING')
-        //     ->update([
-        //         'status' => 'COMPLETED',
-        //         'payment_status' => 'PAID',
-        //     ]);
 
-        // $cancelledTransactions = Transaction::where('status', 'CANCELLED')->delete();
+        // // Remove delivery fee item and add delivery fee to the delivery table
+        // $item = Item::where('name', 'Delivery Fee')->first();
+        // $dailyItems = DailyItem::where('item_id', $item->id)->get();
+        // $transactionItems = TransactionItem::whereIn('daily_item_id', $dailyItems->pluck('id'))->get();
 
-        // $wrongTransactionDailyItem = TransactionItem::find(13);
-        // $wrongTransactionDailyItem->update([
-        //     'daily_item_id' => 17,
-        // ]);
+        // $transactionIds = $transactionItems->pluck('transaction_id')->unique();
+        // $transactions = Transaction::whereIn('id', $transactionIds)->get();
 
-        // $wrongDailyItem = DailyItem::find(7);
-        // $wrongDailyItem->delete();
-
-        // Add new category
-        // Category::create([
-        //     'name' => 'Snacks'
-        // ]);
-        // Category::where('name', 'Food')->update([
-        //     'name' => 'Meals'
-        // ]);
-
-        // Move snacks to the new category
-        // $snackNames = [
-        //     'Kwek-Kwek (6pcs)', 'Squid Balls (8pcs)', 'Chicken Balls (8pcs)', 'Kikiam (Big, 6pcs)', 'Fishballs (20pcs)', 'Cheese Sticks (10pcs)', 'Fried Pork Siomai (10pcs)'
-        // ];
-
-        // $snacks = Item::whereIn('name', $snackNames)->get();
-        // $snacks->each(function ($snack) {
-        //     $snack->category_id = Category::where('name', 'Snacks')->first()->id;
-        //     $snack->save();
+        // $transactionItems->each(function ($transactionItem) {
+        //     $transactionItem->delete();
         // });
+        // $dailyItems->each(function ($dailyItem) {
+        //     $dailyItem->delete();
+        // });
+        // $item->delete();
+        
+        // foreach ($transactions as $transaction) {
+        //     $transaction->delivery()->update([
+        //         'delivery_fee' => 25.00,
+        //     ]);
+        // }
 
-        // // Rename beverages
-        // // Coke Mismo to Coke 290mL
-        // Item::where('name', 'Coke Mismo')->update([
-        //     'name' => 'Coke 290mL'
-        // ]);
-        // // Cobra to Cobra 330mL
-        // Item::where('name', 'Cobra')->update([
-        //     'name' => 'Cobra 330mL'
-        // ]);
-        // // Royal Mismo to Royal 250mL
-        // Item::where('name', 'Royal Mismo')->update([
-        //     'name' => 'Royal 250mL'
-        // ]);
+        // // Delete incorrect daily item
+        // $incorrectDailyItem = DailyItem::whereHas('item', function ($query) {
+        //     $query->where('name', 'Ginataang Langka');
+        // })->whereDate('created_at', '2026-11-08')->first();
+        // if ($incorrectDailyItem) {
+        //     $incorrectDailyItem->delete();
+        // }
     }
 }

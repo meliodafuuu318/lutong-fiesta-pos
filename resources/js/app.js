@@ -895,7 +895,7 @@ if (orderForm && quantityDialog && orderConfirmDialog) {
 
     const typeRadios = [...orderForm.querySelectorAll('input[name="type"]')];
     const sections = [...orderForm.querySelectorAll('[data-section]')];
-    const { payment_method: methodField, payment_amount: amountField, address: addressField, note: noteField } = orderForm.elements;
+    const { payment_method: methodField, payment_amount: amountField, address: addressField, note: noteField, delivery_fee: feeField } = orderForm.elements;
     const lineInputs = orderForm.querySelector('[data-line-inputs]');
     const itemsError = orderForm.querySelector('[data-items-error]');
     const receipt = {
@@ -910,6 +910,9 @@ if (orderForm && quantityDialog && orderConfirmDialog) {
         diffLabel: orderForm.querySelector('[data-receipt-diff-label]'),
         diffValue: orderForm.querySelector('[data-receipt-diff-value]'),
         delivery: orderForm.querySelector('[data-receipt-delivery]'),
+        feeRows: orderForm.querySelector('[data-receipt-fee-rows]'),
+        subtotal: orderForm.querySelector('[data-receipt-subtotal]'),
+        fee: orderForm.querySelector('[data-receipt-fee]'),
         address: orderForm.querySelector('[data-receipt-address]'),
     };
 
@@ -947,6 +950,10 @@ if (orderForm && quantityDialog && orderConfirmDialog) {
         };
     });
     const totalOf = (list) => list.reduce((sum, line) => sum + line.amount, 0);
+    // Delivery fee in cents: only for a delivery, and a blank field means free
+    const deliveryFee = () => (currentType() === 'DELIVERY' && feeField ? toCents(feeField.value) : 0);
+    const grandTotal = (list) => totalOf(list) + deliveryFee();
+    const feeLabel = (fee) => (fee > 0 ? peso(fee) : 'Free');
 
     // Paid vs total: change when it's more, what's still owed when it's less
     const paymentDiff = (total) => {
@@ -967,7 +974,7 @@ if (orderForm && quantityDialog && orderConfirmDialog) {
 
     const render = () => {
         const list = receiptLines();
-        const total = totalOf(list);
+        const total = grandTotal(list);
         const type = currentType();
         const itemCount = list.reduce((sum, line) => sum + line.count, 0);
 
@@ -1017,6 +1024,11 @@ if (orderForm && quantityDialog && orderConfirmDialog) {
         });
 
         receipt.totals.forEach((node) => (node.textContent = peso(total)));
+        if (receipt.feeRows) {
+            receipt.feeRows.hidden = type !== 'DELIVERY';
+            receipt.subtotal.textContent = peso(totalOf(list));
+            receipt.fee.textContent = feeLabel(deliveryFee());
+        }
         if (receipt.count) receipt.count.textContent = itemCount === 0 ? 'No items' : `${itemCount} ${itemCount === 1 ? 'item' : 'items'}`;
 
         syncPaymentFields();
@@ -1169,13 +1181,13 @@ if (orderForm && quantityDialog && orderConfirmDialog) {
 
     // Order details
     typeRadios.forEach((radio) => radio.addEventListener('change', applyType));
-    [methodField, amountField, addressField].filter(Boolean).forEach((control) => {
+    [methodField, amountField, addressField, feeField].filter(Boolean).forEach((control) => {
         control.addEventListener('input', render);
         control.addEventListener('change', render);
     });
 
     orderForm.querySelector('[data-use-total]')?.addEventListener('click', () => {
-        amountField.value = (totalOf(receiptLines()) / 100).toFixed(2);
+        amountField.value = (grandTotal(receiptLines()) / 100).toFixed(2);
         render();
     });
 
@@ -1195,11 +1207,18 @@ if (orderForm && quantityDialog && orderConfirmDialog) {
 
         const dialog = orderConfirmDialog;
         const type = currentType();
-        const total = totalOf(list);
+        const total = grandTotal(list);
 
         dialog.querySelector('[data-confirm-type]').textContent = type === 'WALK IN' ? 'Walk In' : 'Delivery';
         dialog.querySelector('[data-confirm-items]').replaceChildren(...list.map((line) => row(line.label, peso(line.amount))));
         dialog.querySelector('[data-confirm-total]').textContent = peso(total);
+
+        const confirmFeeRows = dialog.querySelector('[data-confirm-fee-rows]');
+        if (confirmFeeRows) {
+            confirmFeeRows.hidden = type !== 'DELIVERY';
+            dialog.querySelector('[data-confirm-subtotal]').textContent = peso(totalOf(list));
+            dialog.querySelector('[data-confirm-fee]').textContent = feeLabel(deliveryFee());
+        }
 
         const payment = dialog.querySelector('[data-confirm-payment]');
         const delivery = dialog.querySelector('[data-confirm-delivery]');
@@ -1236,7 +1255,7 @@ if (orderForm && quantityDialog && orderConfirmDialog) {
     // Leaving with an unsaved receipt (Back, a menu link, a swipe) would lose the work: ask first.
     // When creating, any item counts; when editing, only a change from the order as it was saved.
     const receiptSnapshot = () => JSON.stringify([...lines.values()].map(({ id, mode, quantity, price }) => [id, mode, quantity, price]));
-    const detailsSnapshot = () => JSON.stringify([noteField?.value ?? '', addressField?.value ?? '']);
+    const detailsSnapshot = () => JSON.stringify([noteField?.value ?? '', addressField?.value ?? '', feeField?.value ?? '']);
     let savedReceipt = '[]';
     let savedDetails = detailsSnapshot();
 

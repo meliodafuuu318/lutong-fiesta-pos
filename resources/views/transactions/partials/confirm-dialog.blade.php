@@ -11,6 +11,16 @@
         <div class="mt-4 space-y-1 border-t border-dashed border-cream-200 pt-4 text-sm" data-confirm-items></div>
 
         <div class="mt-4 space-y-1 border-t border-dashed border-cream-200 pt-4 text-sm">
+            <div data-confirm-fee-rows hidden class="space-y-1">
+                <div class="flex items-center justify-between">
+                    <p class="text-ink-soft">Subtotal</p>
+                    <p class="font-semibold text-ink" data-confirm-subtotal></p>
+                </div>
+                <div class="flex items-center justify-between">
+                    <p class="text-ink-soft">Delivery Fee</p>
+                    <p class="font-semibold text-ink" data-confirm-fee></p>
+                </div>
+            </div>
             <div class="flex items-center justify-between">
                 <p class="text-ink-soft">Total</p>
                 <p class="font-bold text-ink" data-confirm-total></p>

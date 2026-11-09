@@ -28,7 +28,8 @@ class TransactionService
      * Create a transaction with its items, its delivery and its first payment.
      *
      * $data is a validated StoreTransactionRequest: type, transaction_items
-     * (daily_item_id + quantity or unit_price), an optional note, address (DELIVERY),
+     * (daily_item_id + quantity or unit_price), an optional note, address and an optional
+     * delivery_fee (DELIVERY; blank = 0, added to the total),
      * and payment_method and payment_amount (always for WALK IN, optional for a
      * pre-paid DELIVERY). A payment that covers the total marks it PAID right away.
      * Everything is saved or nothing is.
@@ -76,12 +77,19 @@ class TransactionService
                 ]);
             }
 
+            // A blank delivery fee means free delivery. Only deliveries carry one.
+            $deliveryFee = $data['type'] === 'DELIVERY'
+                ? round((float) ($data['delivery_fee'] ?? 0), 2)
+                : 0.0;
+            $totalAmount += $deliveryFee;
+
             $transaction->update(['total' => $totalAmount]);
 
             if ($data['type'] === 'DELIVERY') {
                 Delivery::create([
                     'transaction_id' => $transaction->id,
                     'address' => $data['address'],
+                    'delivery_fee' => $deliveryFee,
                     'status' => 'PENDING',
                 ]);
             }
@@ -184,6 +192,16 @@ class TransactionService
                 ];
             }
 
+            // The delivery fee is part of the total: keep the one on file unless a new one was sent.
+            $deliveryFee = 0.0;
+
+            if ($transaction->type === 'DELIVERY') {
+                $deliveryFee = array_key_exists('delivery_fee', $data)
+                    ? round((float) ($data['delivery_fee'] ?? 0), 2)
+                    : (float) $transaction->delivery->delivery_fee;
+                $totalAmount += $deliveryFee;
+            }
+
             $transaction->transactionItems()->delete();
 
             foreach ($lines as $line) {
@@ -196,7 +214,10 @@ class TransactionService
             ]);
 
             if ($transaction->type === 'DELIVERY') {
-                $transaction->delivery->update(['address' => $data['address']]);
+                $transaction->delivery->update([
+                    'address' => $data['address'],
+                    'delivery_fee' => $deliveryFee,
+                ]);
             }
 
             // A payment row with nothing paid (a walk in taken at ₱0) still records the old total.
