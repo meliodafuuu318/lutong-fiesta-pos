@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DailyItem\WebStoreDailyItemRequest;
+use App\Http\Requests\DailyItem\WebStoreManyDailyItemRequest;
 use App\Http\Requests\DailyItem\WebUpdateDailyItemRequest;
 use App\Models\DailyItem;
 use App\Models\Item;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 
 class DailyItemController extends Controller
 {
@@ -29,6 +31,43 @@ class DailyItemController extends Controller
 
         return redirect()->to(route('menu') . '#tab-' . $item->category_id)
             ->with('status', "{$item->name} added to today's menu.");
+    }
+
+    /** Adds several items at once, each at its default price. */
+    public function storeMany(WebStoreManyDailyItemRequest $request): RedirectResponse
+    {
+        $requested = collect($request->validated('item_ids'))->map(fn ($id) => (int) $id)->unique();
+
+        $alreadyOnMenu = DailyItem::todayMenu()->whereIn('item_id', $requested)->pluck('item_id');
+
+        $items = Item::whereIn('id', $requested->diff($alreadyOnMenu))->orderBy('category_id')->orderBy('name')->get();
+
+        if ($items->isEmpty()) {
+            return redirect()->route('menu')
+                ->withErrors(['daily_item' => 'The selected items are already on today\'s menu.']);
+        }
+
+        DB::transaction(function () use ($items) {
+            foreach ($items as $item) {
+                DailyItem::create([
+                    'item_id' => $item->id,
+                    'price' => $item->default_price,
+                    'date' => today(),
+                    'status' => 'AVAILABLE',
+                ]);
+            }
+        });
+
+        $message = $items->count() === 1
+            ? "{$items->first()->name} added to today's menu."
+            : "{$items->count()} items added to today's menu.";
+
+        if ($alreadyOnMenu->isNotEmpty()) {
+            $message .= " {$alreadyOnMenu->count()} already on the menu " . ($alreadyOnMenu->count() === 1 ? 'was' : 'were') . ' skipped.';
+        }
+
+        return redirect()->to(route('menu') . '#tab-' . $items->first()->category_id)
+            ->with('status', $message);
     }
 
     public function update(WebUpdateDailyItemRequest $request, DailyItem $dailyItem): RedirectResponse

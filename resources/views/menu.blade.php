@@ -182,71 +182,141 @@
     id="add-dialog"
     aria-labelledby="add-dialog-title"
     data-reopen="{{ $errors->addItem->any() ? '1' : '' }}"
+    data-old-mode="{{ old('item_ids') !== null ? 'multiple' : 'single' }}"
     data-old-item="{{ old('item_id') }}"
     data-old-price="{{ old('price') }}"
+    data-old-items='@json(array_map('strval', (array) old('item_ids', [])))'
     class="m-auto max-h-[calc(100dvh-2rem)] w-[min(28rem,calc(100%-2rem))] overflow-y-auto rounded-2xl border-2 border-cream-200 bg-cream-50 p-0 text-ink shadow-2xl backdrop:bg-ink/50"
 >
     <div class="flex items-start justify-between gap-4 border-b-2 border-cream-200 px-5 py-4">
-        <h2 id="add-dialog-title" class="font-display text-2xl font-bold leading-tight text-teal-900">Add item to menu</h2>
+        <h2 id="add-dialog-title" class="font-display text-2xl font-bold leading-tight text-teal-900">Add to menu</h2>
         <button type="button" data-dialog-close aria-label="Close" class="-mr-2 flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg text-ink hover:bg-cream-100">
             <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
     </div>
 
-    <form method="POST" action="{{ route('daily-items.store') }}" data-add-form class="px-5 py-5">
-        @csrf
-
-        @if ($addableItems->isEmpty())
+    @if ($addableItems->isEmpty())
+        <div class="px-5 py-5">
             <p class="rounded-lg border-2 border-dashed border-cream-200 px-4 py-6 text-center text-ink-soft">Every item is already on today's menu.</p>
-        @else
-            <div class="space-y-5">
-                <div>
-                    <label for="add-item" class="block text-sm font-bold">Item</label>
-                    <select
-                        id="add-item" name="item_id" required
-                        class="mt-1.5 w-full cursor-pointer rounded-lg border-2 bg-white px-4 py-3 text-base font-semibold text-ink @error('item_id', 'addItem') border-danger @else border-cream-200 focus:border-teal-500 @enderror"
-                    >
-                        <option value="">Choose an item…</option>
-                        {{-- options:start --}}
-                        @foreach ($addableItems as $categoryName => $categoryItems)
-                            <optgroup label="{{ $categoryName }}">
-                                @foreach ($categoryItems as $item)
-                                    <option value="{{ $item->id }}" data-name="{{ $item->name }}" data-price="{{ $item->default_price }}" @selected(old('item_id') == $item->id)>{{ $item->name }}</option>
-                                @endforeach
-                            </optgroup>
-                        @endforeach
-                        {{-- options:end --}}
-                    </select>
-                    @error('item_id', 'addItem')
-                        <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label for="add-price" class="block text-sm font-bold">Price</label>
-                    <div class="relative mt-1.5">
-                        <span class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-lg font-bold text-ink-soft">₱</span>
-                        <input
-                            id="add-price" name="price" type="number" inputmode="decimal" step="0.01" min="0" required
-                            class="w-full rounded-lg border-2 bg-white py-3 pl-10 pr-4 text-lg font-bold text-ink @error('price', 'addItem') border-danger @else border-cream-200 focus:border-teal-500 @enderror"
-                        >
-                    </div>
-                    @error('price', 'addItem')
-                        <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
-                    @enderror
-                </div>
+            <div class="mt-6">
+                <button type="button" data-dialog-close class="w-full cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-4 py-3 font-bold hover:border-teal-500">Close</button>
             </div>
-        @endif
-
-        <div class="mt-6 grid grid-cols-2 gap-2">
-            <button type="button" data-dialog-close class="cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-4 py-3 font-bold hover:border-teal-500">Cancel</button>
-            <button
-                type="submit"
-                @disabled($addableItems->isEmpty())
-                class="cursor-pointer rounded-lg bg-amber-500 px-4 py-3 font-display text-lg font-bold leading-snug text-ink shadow-[0_4px_0_0_var(--color-amber-600)] transition hover:bg-amber-400 active:translate-y-[2px] active:shadow-[0_2px_0_0_var(--color-amber-600)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
-            >Save</button>
         </div>
-    </form>
+    @else
+        {{-- Single / multiple --}}
+        <div role="tablist" aria-label="How many items" class="mx-5 mt-5 grid grid-cols-2 gap-1 rounded-xl bg-cream-100 p-1">
+            <button type="button" role="tab" id="add-mode-single" aria-controls="add-panel-single" aria-selected="true" data-add-mode="single" class="cursor-pointer rounded-lg px-3 py-2 font-bold text-ink hover:bg-cream-200 aria-selected:bg-teal-700 aria-selected:text-cream-50">Single item</button>
+            <button type="button" role="tab" id="add-mode-multiple" aria-controls="add-panel-multiple" aria-selected="false" tabindex="-1" data-add-mode="multiple" class="cursor-pointer rounded-lg px-3 py-2 font-bold text-ink hover:bg-cream-200 aria-selected:bg-teal-700 aria-selected:text-cream-50">Multiple items</button>
+        </div>
+
+        {{-- Single item: searchable picker, custom price --}}
+        <div role="tabpanel" id="add-panel-single" aria-labelledby="add-mode-single">
+            <form method="POST" action="{{ route('daily-items.store') }}" data-add-form class="px-5 py-5" novalidate>
+                @csrf
+                <div class="space-y-5">
+                    <div>
+                        <label for="add-item-search" class="block text-sm font-bold">Item</label>
+                        <input type="hidden" name="item_id" value="{{ old('item_id') }}">
+                        <input
+                            id="add-item-search" type="text" role="combobox" autocomplete="off" spellcheck="false"
+                            aria-expanded="false" aria-controls="add-item-list" aria-autocomplete="list"
+                            placeholder="Type to search items…"
+                            class="mt-1.5 w-full rounded-lg border-2 bg-white px-4 py-3 text-base font-semibold text-ink @error('item_id', 'addItem') border-danger @else border-cream-200 focus:border-teal-500 @enderror"
+                        >
+                        <ul id="add-item-list" role="listbox" aria-label="Available items" hidden class="mt-2 max-h-56 overflow-y-auto rounded-lg border-2 border-cream-200 bg-white">
+                            @foreach ($addableItems as $categoryName => $categoryItems)
+                                <li role="presentation" data-combo-group>
+                                    <p class="sticky top-0 bg-cream-100 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-ink-soft">{{ $categoryName }}</p>
+                                    <ul role="group" aria-label="{{ $categoryName }}">
+                                        @foreach ($categoryItems as $item)
+                                            <li
+                                                role="option" id="add-opt-{{ $item->id }}" aria-selected="false"
+                                                data-combo-option data-id="{{ $item->id }}" data-name="{{ $item->name }}" data-price="{{ $item->default_price }}" data-search="{{ mb_strtolower($item->name . ' ' . $categoryName) }}"
+                                                class="flex cursor-pointer items-baseline justify-between gap-3 px-4 py-2.5 font-semibold hover:bg-cream-100 aria-selected:bg-teal-100"
+                                            >
+                                                <span>{{ $item->name }}</span>
+                                                <span class="shrink-0 text-sm text-ink-soft">₱{{ number_format($item->default_price, 2) }}</span>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </li>
+                            @endforeach
+                            <li role="presentation" data-combo-empty hidden class="px-4 py-3 text-center text-ink-soft">No matching items.</li>
+                        </ul>
+                        @error('item_id', 'addItem')
+                            <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div>
+                        <label for="add-price" class="block text-sm font-bold">Price</label>
+                        <div class="relative mt-1.5">
+                            <span class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-lg font-bold text-ink-soft">₱</span>
+                            <input
+                                id="add-price" name="price" type="number" inputmode="decimal" step="0.01" min="0" required
+                                class="w-full rounded-lg border-2 bg-white py-3 pl-10 pr-4 text-lg font-bold text-ink @error('price', 'addItem') border-danger @else border-cream-200 focus:border-teal-500 @enderror"
+                            >
+                        </div>
+                        @error('price', 'addItem')
+                            <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+
+                <div class="mt-6 grid grid-cols-2 gap-2">
+                    <button type="button" data-dialog-close class="cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-4 py-3 font-bold hover:border-teal-500">Cancel</button>
+                    <button type="submit" class="cursor-pointer rounded-lg bg-amber-500 px-4 py-3 font-display text-lg font-bold leading-snug text-ink shadow-[0_4px_0_0_var(--color-amber-600)] transition hover:bg-amber-400 active:translate-y-[2px] active:shadow-[0_2px_0_0_var(--color-amber-600)]">Save</button>
+                </div>
+            </form>
+        </div>
+
+        {{-- Multiple items: checkboxes, default prices --}}
+        <div role="tabpanel" id="add-panel-multiple" aria-labelledby="add-mode-multiple" hidden>
+            <form method="POST" action="{{ route('daily-items.store-many') }}" data-add-many-form class="px-5 py-5" novalidate>
+                @csrf
+                <p class="text-sm text-ink-soft">Selected items are added at their default price. To set a custom price, add the item on its own.</p>
+
+                <div class="mt-4 flex gap-2">
+                    <label for="add-many-search" class="sr-only">Filter items</label>
+                    <input id="add-many-search" type="search" autocomplete="off" placeholder="Filter items…" class="min-w-0 flex-1 rounded-lg border-2 border-cream-200 bg-white px-4 py-2.5 font-semibold text-ink focus:border-teal-500">
+                    <button type="button" data-many-toggle-all class="shrink-0 cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-3 py-2.5 text-sm font-bold hover:border-teal-500">Select all</button>
+                </div>
+
+                <div class="mt-3 max-h-64 overflow-y-auto rounded-lg border-2 border-cream-200 bg-white">
+                    @foreach ($addableItems as $categoryName => $categoryItems)
+                        <fieldset data-many-group class="min-w-0">
+                            <legend class="sticky top-0 z-[1] w-full bg-cream-100 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-ink-soft">{{ $categoryName }}</legend>
+                            @foreach ($categoryItems as $item)
+                                <label data-many-row data-search="{{ mb_strtolower($item->name . ' ' . $categoryName) }}" class="flex cursor-pointer items-center gap-3 px-4 py-2.5 font-semibold hover:bg-cream-100">
+                                    <input
+                                        type="checkbox" name="item_ids[]" value="{{ $item->id }}"
+                                        data-name="{{ $item->name }}" data-price="{{ $item->default_price }}"
+                                        class="size-5 shrink-0 cursor-pointer accent-teal-700"
+                                    >
+                                    <span class="min-w-0 flex-1">{{ $item->name }}</span>
+                                    <span class="shrink-0 text-sm text-ink-soft">₱{{ number_format($item->default_price, 2) }}</span>
+                                </label>
+                            @endforeach
+                        </fieldset>
+                    @endforeach
+                    <p data-many-empty hidden class="px-4 py-3 text-center text-ink-soft">No matching items.</p>
+                </div>
+
+                @error('item_ids', 'addItem')
+                    <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
+                @enderror
+                @error('item_ids.*', 'addItem')
+                    <p class="mt-1.5 text-sm font-semibold text-danger" role="alert">{{ $message }}</p>
+                @enderror
+                <p data-many-error hidden class="mt-1.5 text-sm font-semibold text-danger" role="alert">Select at least one item.</p>
+
+                <div class="mt-6 grid grid-cols-2 gap-2">
+                    <button type="button" data-dialog-close class="cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-4 py-3 font-bold hover:border-teal-500">Cancel</button>
+                    <button type="submit" data-many-submit class="cursor-pointer rounded-lg bg-amber-500 px-4 py-3 font-display text-lg font-bold leading-snug text-ink shadow-[0_4px_0_0_var(--color-amber-600)] transition hover:bg-amber-400 active:translate-y-[2px] active:shadow-[0_2px_0_0_var(--color-amber-600)]">Add selected</button>
+                </div>
+            </form>
+        </div>
+    @endif
 </dialog>
 
 {{-- Add item confirmation --}}
@@ -261,6 +331,23 @@
         <div class="mt-5 grid grid-cols-2 gap-2">
             <button type="button" data-dialog-close class="cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-4 py-2.5 font-bold hover:border-teal-500">Cancel</button>
             <button type="button" data-add-confirm class="cursor-pointer rounded-lg bg-amber-500 px-4 py-2.5 font-bold text-ink hover:bg-amber-400 disabled:opacity-50">Add to menu</button>
+        </div>
+    </div>
+</dialog>
+
+{{-- Add multiple items confirmation --}}
+<dialog
+    id="add-many-confirm-dialog"
+    aria-labelledby="add-many-confirm-title"
+    class="m-auto max-h-[calc(100dvh-2rem)] w-[min(26rem,calc(100%-2rem))] overflow-y-auto rounded-2xl border-2 border-cream-200 bg-cream-50 p-0 text-ink shadow-2xl backdrop:bg-ink/50"
+>
+    <div class="p-5">
+        <h2 id="add-many-confirm-title" class="font-display text-2xl font-bold leading-tight text-teal-900">Add <span data-many-confirm-count></span> to menu?</h2>
+        <p class="mt-2 text-ink-soft">These will be added to today's menu at their default prices.</p>
+        <ul data-many-confirm-list class="mt-3 max-h-60 divide-y divide-cream-200 overflow-y-auto rounded-lg border-2 border-cream-200 bg-white"></ul>
+        <div class="mt-5 grid grid-cols-2 gap-2">
+            <button type="button" data-dialog-close class="cursor-pointer rounded-lg border-2 border-cream-200 bg-white px-4 py-2.5 font-bold hover:border-teal-500">Back</button>
+            <button type="button" data-add-many-confirm class="cursor-pointer rounded-lg bg-amber-500 px-4 py-2.5 font-bold text-ink hover:bg-amber-400 disabled:opacity-50">Add to menu</button>
         </div>
     </div>
 </dialog>

@@ -69,6 +69,7 @@ Route::middleware(['no-store', 'auth'])->group(function () {
         Route::put('/expenses/{expense}', [ExpenseController::class, 'update'])->name('expenses.update');
         Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy'])->name('expenses.destroy');
         Route::post('/daily-items', [DailyItemController::class, 'store'])->name('daily-items.store');
+        Route::post('/daily-items/batch', [DailyItemController::class, 'storeMany'])->name('daily-items.store-many');
         Route::put('/daily-items/{dailyItem}', [DailyItemController::class, 'update'])->name('daily-items.update');
         Route::delete('/daily-items/{dailyItem}', [DailyItemController::class, 'destroy'])->name('daily-items.destroy');
     });

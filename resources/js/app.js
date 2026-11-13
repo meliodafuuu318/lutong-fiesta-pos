@@ -302,26 +302,157 @@ if (itemDialog && confirmDialog) {
 // Add item to menu
 const addDialog = document.getElementById('add-dialog');
 const addConfirmDialog = document.getElementById('add-confirm-dialog');
+const addManyConfirmDialog = document.getElementById('add-many-confirm-dialog');
 
-if (addDialog && addConfirmDialog) {
-    const addForm = addDialog.querySelector('[data-add-form]');
-    const itemSelect = addForm.elements.item_id; // missing when every item is already on the menu
-    const priceField = addForm.elements.price;
+if (addDialog && addConfirmDialog && addManyConfirmDialog) {
+    const addForm = addDialog.querySelector('[data-add-form]'); // missing when every item is already on the menu
+    const addManyForm = addDialog.querySelector('[data-add-many-form]');
 
-    [addDialog, addConfirmDialog].forEach(wireDialog);
+    [addDialog, addConfirmDialog, addManyConfirmDialog].forEach(wireDialog);
 
-    document.querySelector('[data-add-item-open]').addEventListener('click', () => {
-        if (itemSelect) {
-            itemSelect.value = '';
-            priceField.value = '';
-        }
-        addDialog.showModal();
+    const modeTabs = [...addDialog.querySelectorAll('[data-add-mode]')];
+
+    const setMode = (mode) => {
+        modeTabs.forEach((tab) => {
+            const active = tab.dataset.addMode === mode;
+            tab.setAttribute('aria-selected', String(active));
+            tab.tabIndex = active ? 0 : -1;
+            document.getElementById(tab.getAttribute('aria-controls')).hidden = !active;
+        });
+    };
+
+    modeTabs.forEach((tab, i) => {
+        tab.addEventListener('click', () => setMode(tab.dataset.addMode));
+        tab.addEventListener('keydown', (event) => {
+            const target = { ArrowRight: i + 1, ArrowLeft: i - 1 }[event.key];
+            if (target === undefined) return;
+            event.preventDefault();
+            const next = modeTabs[(target + modeTabs.length) % modeTabs.length];
+            setMode(next.dataset.addMode);
+            next.focus();
+        });
     });
 
-    if (itemSelect) {
-        // Picking an item pre-fills its default price, which stays editable
-        itemSelect.addEventListener('change', () => {
-            priceField.value = itemSelect.selectedOptions[0]?.dataset.price ?? '';
+    // Single item: type to filter the list, pick one, price pre-fills (and stays editable)
+    const itemInput = addForm?.elements.item_id;
+    const priceField = addForm?.elements.price;
+    const search = addForm?.querySelector('#add-item-search');
+    const list = addForm?.querySelector('#add-item-list');
+    const options = list ? [...list.querySelectorAll('[data-combo-option]')] : [];
+    let activeOption = null;
+
+    const visibleOptions = () => options.filter((option) => !option.hidden);
+
+    const setActive = (option) => {
+        activeOption?.setAttribute('aria-selected', 'false');
+        activeOption = option;
+        if (option) {
+            option.setAttribute('aria-selected', 'true');
+            search.setAttribute('aria-activedescendant', option.id);
+            option.scrollIntoView({ block: 'nearest' });
+        } else {
+            search.removeAttribute('aria-activedescendant');
+        }
+    };
+
+    const openList = (open) => {
+        list.hidden = !open;
+        search.setAttribute('aria-expanded', String(open));
+        if (!open) setActive(null);
+    };
+
+    const filterList = () => {
+        const query = search.value.trim().toLowerCase();
+
+        options.forEach((option) => {
+            option.hidden = query !== '' && !option.dataset.search.includes(query);
+        });
+        list.querySelectorAll('[data-combo-group]').forEach((group) => {
+            group.hidden = !group.querySelector('[data-combo-option]:not([hidden])');
+        });
+        list.querySelector('[data-combo-empty]').hidden = visibleOptions().length > 0;
+
+        setActive(null);
+    };
+
+    const choose = (option) => {
+        itemInput.value = option.dataset.id;
+        search.value = option.dataset.name;
+        priceField.value = option.dataset.price ?? '';
+        search.setCustomValidity('');
+        openList(false);
+    };
+
+    const clearChoice = () => {
+        itemInput.value = '';
+        priceField.value = '';
+    };
+
+    // Typing an item's exact name counts as choosing it
+    const resolveTyped = () => {
+        if (itemInput.value) return;
+        const typed = search.value.trim().toLowerCase();
+        const match = options.find((option) => option.dataset.name.toLowerCase() === typed);
+        if (match) choose(match);
+    };
+
+    if (search && list) {
+        search.addEventListener('focus', () => {
+            filterList();
+            openList(true);
+        });
+
+        search.addEventListener('input', () => {
+            clearChoice(); // the old pick no longer matches what's typed
+            filterList();
+            openList(true);
+        });
+
+        search.addEventListener('keydown', (event) => {
+            const visible = visibleOptions();
+            const index = visible.indexOf(activeOption);
+
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                if (list.hidden) {
+                    filterList();
+                    openList(true);
+                }
+                const next = event.key === 'ArrowDown' ? index + 1 : index - 1;
+                if (visible.length) setActive(visible[(next + visible.length) % visible.length]);
+            } else if (event.key === 'Enter' && !list.hidden) {
+                event.preventDefault();
+                const pick = activeOption ?? (visible.length === 1 ? visible[0] : null);
+                if (pick) choose(pick);
+            } else if (event.key === 'Escape' && !list.hidden) {
+                event.preventDefault(); // close the list, not the whole dialog
+                openList(false);
+            }
+        });
+
+        // mousedown, not click: the input would lose focus (and close the list) first
+        list.addEventListener('mousedown', (event) => {
+            const option = event.target.closest('[data-combo-option]');
+            if (!option) return;
+            event.preventDefault();
+            choose(option);
+        });
+
+        document.addEventListener('mousedown', (event) => {
+            if (!list.hidden && event.target !== search && !list.contains(event.target)) {
+                resolveTyped();
+                openList(false);
+            }
+        });
+
+        search.addEventListener('blur', () => {
+            // Tabbing away: keep an exact typed name, drop the list
+            setTimeout(() => {
+                if (document.activeElement !== search) {
+                    resolveTyped();
+                    openList(false);
+                }
+            }, 0);
         });
 
         // Saving asks for confirmation first
@@ -329,9 +460,11 @@ if (addDialog && addConfirmDialog) {
             if (addForm.dataset.confirmed) return;
 
             event.preventDefault();
+            resolveTyped();
+            search.setCustomValidity(itemInput.value ? '' : 'Choose an item from the list.');
             if (!addForm.reportValidity()) return;
 
-            addConfirmDialog.querySelector('[data-add-confirm-name]').textContent = itemSelect.selectedOptions[0].dataset.name;
+            addConfirmDialog.querySelector('[data-add-confirm-name]').textContent = search.value;
             addConfirmDialog.querySelector('[data-add-confirm-price]').textContent = '₱' + Number(priceField.value).toFixed(2);
             addConfirmDialog.showModal();
         });
@@ -341,13 +474,130 @@ if (addDialog && addConfirmDialog) {
             addForm.dataset.confirmed = '1';
             addForm.requestSubmit();
         });
+    }
 
-        // The server sent us back with validation errors: reopen with what was entered
-        if (addDialog.dataset.reopen) {
-            itemSelect.value = addDialog.dataset.oldItem;
-            priceField.value = addDialog.dataset.oldPrice;
-            addDialog.showModal();
+    // Multiple items: filter, tick, review, add (always at default prices)
+    if (addManyForm) {
+        const manySearch = addManyForm.querySelector('#add-many-search');
+        const rows = [...addManyForm.querySelectorAll('[data-many-row]')];
+        const groups = [...addManyForm.querySelectorAll('[data-many-group]')];
+        const toggleAll = addManyForm.querySelector('[data-many-toggle-all]');
+        const manyError = addManyForm.querySelector('[data-many-error]');
+        const checkbox = (row) => row.querySelector('input[type="checkbox"]');
+        const shownRows = () => rows.filter((row) => !row.hidden);
+        const checked = () => rows.map(checkbox).filter((box) => box.checked);
+
+        const syncToggle = () => {
+            const shown = shownRows();
+            const allTicked = shown.length > 0 && shown.every((row) => checkbox(row).checked);
+            toggleAll.textContent = allTicked ? 'Clear shown' : 'Select all';
+            toggleAll.disabled = shown.length === 0;
+        };
+
+        manySearch.addEventListener('input', () => {
+            const query = manySearch.value.trim().toLowerCase();
+
+            rows.forEach((row) => {
+                row.hidden = query !== '' && !row.dataset.search.includes(query);
+            });
+            groups.forEach((group) => {
+                group.hidden = !group.querySelector('[data-many-row]:not([hidden])');
+            });
+            addManyForm.querySelector('[data-many-empty]').hidden = shownRows().length > 0;
+            syncToggle();
+        });
+
+        // Enter in the filter box shouldn't submit the form
+        manySearch.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') event.preventDefault();
+        });
+
+        toggleAll.addEventListener('click', () => {
+            const shown = shownRows();
+            const allTicked = shown.every((row) => checkbox(row).checked);
+            shown.forEach((row) => { checkbox(row).checked = !allTicked; });
+            manyError.hidden = true;
+            syncToggle();
+        });
+
+        addManyForm.addEventListener('change', () => {
+            manyError.hidden = true;
+            syncToggle();
+        });
+
+        addManyForm.addEventListener('submit', (event) => {
+            if (addManyForm.dataset.confirmed) return;
+
+            event.preventDefault();
+            const picked = checked();
+
+            if (picked.length === 0) {
+                manyError.hidden = false;
+                return;
+            }
+
+            const count = picked.length === 1 ? '1 item' : `${picked.length} items`;
+            addManyConfirmDialog.querySelector('[data-many-confirm-count]').textContent = count;
+            addManyConfirmDialog.querySelector('[data-many-confirm-list]').replaceChildren(...picked.map((box) => {
+                const li = document.createElement('li');
+                li.className = 'flex items-baseline justify-between gap-3 px-4 py-2 font-semibold';
+
+                const name = document.createElement('span');
+                name.textContent = box.dataset.name;
+
+                const price = document.createElement('span');
+                price.className = 'shrink-0 text-sm text-ink-soft';
+                price.textContent = '₱' + Number(box.dataset.price).toFixed(2);
+
+                li.append(name, price);
+                return li;
+            }));
+            addManyConfirmDialog.showModal();
+        });
+
+        addManyConfirmDialog.querySelector('[data-add-many-confirm]').addEventListener('click', (event) => {
+            event.currentTarget.disabled = true;
+            addManyForm.dataset.confirmed = '1';
+            addManyForm.requestSubmit();
+        });
+
+        syncToggle();
+    }
+
+    document.querySelector('[data-add-item-open]').addEventListener('click', () => {
+        if (addForm) {
+            addForm.reset();
+            clearChoice();
+            search.value = '';
+            search.setCustomValidity('');
+            openList(false);
         }
+        if (addManyForm) {
+            addManyForm.reset();
+            addManyForm.querySelector('#add-many-search').value = '';
+            addManyForm.querySelector('#add-many-search').dispatchEvent(new Event('input'));
+            addManyForm.querySelector('[data-many-error]').hidden = true;
+        }
+        setMode('single');
+        addDialog.showModal();
+        addDialog.scrollTop = 0;
+    });
+
+    // The server sent us back with validation errors: reopen with what was entered
+    if (addDialog.dataset.reopen && addForm) {
+        if (addDialog.dataset.oldMode === 'multiple') {
+            const oldIds = JSON.parse(addDialog.dataset.oldItems || '[]');
+            addManyForm.querySelectorAll('input[type="checkbox"]').forEach((box) => {
+                box.checked = oldIds.includes(box.value);
+            });
+            addManyForm.dispatchEvent(new Event('change'));
+            setMode('multiple');
+        } else {
+            const old = options.find((option) => option.dataset.id === addDialog.dataset.oldItem);
+            if (old) choose(old);
+            priceField.value = addDialog.dataset.oldPrice;
+        }
+        addDialog.showModal();
     }
 }
 
