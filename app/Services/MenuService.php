@@ -37,7 +37,7 @@ class MenuService
             ->groupBy(fn (DailyItem $dailyItem) => $dailyItem->item->category_id);
 
         $categories = Category::whereIn('id', $menuByCategory->keys())
-            ->orderBy('id')
+            ->orderBy('order')
             ->get();
 
         return compact('categories', 'menuByCategory');

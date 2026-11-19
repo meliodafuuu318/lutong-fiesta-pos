@@ -13,10 +13,14 @@ class CategorySeeder extends Seeder
      */
     public function run(): void
     {
-        $categories = ['Meals', 'Snacks', 'Beverages', 'Add-ons', 'Misc'];
+        $categories = ['Meals', 'Snacks', 'Beverages', 'Frozen', 'Add-ons', 'Misc'];
+        $i = 0;
 
         foreach ($categories as $category) {
-            Category::create(['name' => $category]);
+            Category::create([
+                'name' => $category,
+                'order' => $i++
+            ]);
         }
     }
 }

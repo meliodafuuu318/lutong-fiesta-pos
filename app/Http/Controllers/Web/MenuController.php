@@ -20,7 +20,7 @@ class MenuController extends Controller
 
         // Only categories that have something on today's menu get a tab.
         $categories = Category::whereIn('id', $menuByCategory->keys())
-            ->orderBy('id')
+            ->orderBy('order')
             ->get();
 
         // Active items that aren't on today's menu yet, grouped by category for the "add item" dropdown.
